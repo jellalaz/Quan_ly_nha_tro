@@ -8,7 +8,7 @@ from sqlalchemy import text
 class AIService:
     def __init__(self):
         # Cấu hình Gemini AI
-        genai.configure(api_key="AIzaSyCIEnHLUvhcB_fO1vnMQQ7w9BR72qhNLPo")
+        # genai.configure(api_key="AIzaSyCIEnHLUvhcB_fO1vnMQQ7w9BR72qhNLPo")
         self.model = genai.GenerativeModel('gemini-2.5-flash')
         
     def generate_response(self, user_question: str, context: Optional[Dict] = None) -> str:
