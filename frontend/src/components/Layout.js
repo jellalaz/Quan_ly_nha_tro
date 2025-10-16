@@ -114,9 +114,16 @@ const Layout = ({ children }) => {
       key: 'logout',
       icon: <LogoutOutlined />,
       label: 'Đăng xuất',
-      onClick: handleLogout,
     },
   ];
+
+  const onUserMenuClick = ({ key }) => {
+    if (key === 'logout') {
+      handleLogout();
+    } else if (key === 'profile') {
+      navigate('/profile');
+    }
+  };
 
   return (
     <AntLayout style={{ minHeight: '100vh' }}>
@@ -161,7 +168,7 @@ const Layout = ({ children }) => {
             }}
           />
           <Dropdown
-            menu={{ items: userMenuItems }}
+            menu={{ items: userMenuItems, onClick: onUserMenuClick }}
             placement="bottomRight"
             arrow
           >

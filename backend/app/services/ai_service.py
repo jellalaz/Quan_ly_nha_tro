@@ -8,7 +8,7 @@ from sqlalchemy import text
 class AIService:
     def __init__(self):
         # Cấu hình Gemini AI
-        # genai.configure(api_key="AIzaSyCIEnHLUvhcB_fO1vnMQQ7w9BR72qhNLPo")
+        genai.configure(api_key="AIzaSyCIEnHLUvhcB_fO1vnMQQ7w9BR72qhNLPo")
         self.model = genai.GenerativeModel('gemini-2.5-flash')
         
     def generate_response(self, user_question: str, context: Optional[Dict] = None) -> str:
@@ -48,7 +48,7 @@ class AIService:
         - Trả lời bằng tiếng Việt, ngắn gọn, có cấu trúc rõ ràng
         - Sử dụng bullet points (-) cho danh sách
         - Sử dụng ## cho tiêu đề phần (nếu cần)
-        - Sử dụng **text** để làm nổi bật thông tin quan trọng
+        - Sử dụng **text** để làm nổi bật thông tin quan trọng ( in đậm nó )
         - Đưa ra số liệu cụ thể từ dữ liệu hệ thống
         - Nếu là câu hỏi phức tạp, chia thành các phần: Tình hình hiện tại, Phân tích, Khuyến nghị
         - Mỗi ý chính không quá 2 dòng

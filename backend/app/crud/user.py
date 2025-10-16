@@ -6,12 +6,21 @@ from app.core.security import get_password_hash
 
 def create_user(db: Session, user: UserCreate):
     hashed_password = get_password_hash(user.password)
+
+    # Resolve 'owner' role by authority to avoid hardcoding role_id
+    owner_role = db.query(Role).filter(Role.authority == "owner").first()
+    if not owner_role:
+        owner_role = Role(authority="owner")
+        db.add(owner_role)
+        db.commit()
+        db.refresh(owner_role)
+
     db_user = User(
         fullname=user.fullname,
         phone=user.phone,
         email=user.email,
         password=hashed_password,
-        role_id=user.role_id
+        role_id=owner_role.id
     )
     db.add(db_user)
     db.commit()
@@ -23,6 +32,9 @@ def get_user_by_id(db: Session, user_id: int):
 
 def get_user_by_email(db: Session, email: str):
     return db.query(User).filter(User.email == email).first()
+
+def get_user_by_phone(db: Session, phone: str):
+    return db.query(User).filter(User.phone == phone).first()
 
 def get_users(db: Session, skip: int = 0, limit: int = 100):
     return db.query(User).offset(skip).limit(limit).all()

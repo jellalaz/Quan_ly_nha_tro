@@ -21,6 +21,9 @@ def get_password_hash(password):
 def get_user(db: Session, email: str):
     return db.query(User).filter(User.email == email).first()
 
+def get_user_by_id(db: Session, owner_id: int):
+    return db.query(User).filter(User.owner_id == owner_id).first()
+
 def authenticate_user(db: Session, email: str, password: str):
     user = get_user(db, email)
     if not user:
@@ -47,12 +50,16 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
     )
     try:
         payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
-        email: str = payload.get("sub")
-        if email is None:
+        email: Optional[str] = payload.get("sub")
+        owner_id: Optional[int] = payload.get("oid")
+        if owner_id is not None:
+            user = get_user_by_id(db, owner_id=owner_id)
+        elif email is not None:
+            user = get_user(db, email=email)
+        else:
             raise credentials_exception
     except JWTError:
         raise credentials_exception
-    user = get_user(db, email=email)
     if user is None:
         raise credentials_exception
     return user

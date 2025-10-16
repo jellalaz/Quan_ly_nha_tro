@@ -82,7 +82,13 @@ const Login = () => {
           </Form.Item>
         </Form>
 
-        <div style={{ textAlign: 'center', marginTop: 16 }}>
+        <div style={{ textAlign: 'center', marginTop: 8 }}>
+          <Button type="link" onClick={() => navigate('/register')}>
+            Chưa có tài khoản? Đăng ký
+          </Button>
+        </div>
+
+        <div style={{ textAlign: 'center', marginTop: 8 }}>
           <p style={{ color: '#999', fontSize: 12 }}>
             Tài khoản demo: admin@example.com / admin123
           </p>

@@ -73,7 +73,6 @@ const Owners = () => {
   const handleSubmit = async (values) => {
     try {
       if (editingOwner) {
-        // Update owner - only send allowed fields
         const updateData = {
           fullname: values.fullname,
           phone: values.phone,
@@ -82,7 +81,6 @@ const Owners = () => {
         await ownerService.update(editingOwner.owner_id, updateData);
         message.success('Cập nhật chủ trọ thành công!');
       } else {
-        // Create owner - must include password
         if (!values.password) {
           message.error('Vui lòng nhập mật khẩu!');
           return;
@@ -93,8 +91,53 @@ const Owners = () => {
       setModalVisible(false);
       fetchOwners();
     } catch (error) {
-      const errorMsg = error.response?.data?.detail || 'Lỗi khi lưu thông tin chủ trọ!';
-      message.error(errorMsg);
+      const res = error?.response;
+      const status = res?.status;
+      const data = res?.data;
+
+      if (status === 422 && Array.isArray(data?.detail)) {
+        const antFields = data.detail
+          .filter(Boolean)
+          .map((e) => ({
+            name: e?.loc?.[e.loc.length - 1] || 'fullname',
+            errors: [e?.msg || 'Dữ liệu không hợp lệ']
+          }));
+        if (antFields.length) form.setFields(antFields);
+        const msgs = data.detail.map((e) => e.msg).filter(Boolean).join('\n');
+        message.error(msgs || 'Dữ liệu không hợp lệ. Vui lòng kiểm tra lại.');
+      } else if (status === 400) {
+        let detailText = '';
+        if (typeof data?.detail === 'string') detailText = data.detail;
+        else if (Array.isArray(data?.detail)) detailText = data.detail.map((e) => e.msg).join('\n');
+        else if (typeof data === 'string') detailText = data;
+
+        const dupMap = {
+          'Email already registered': 'Email đã được sử dụng.',
+          'Phone already registered': 'Số điện thoại đã được sử dụng.',
+          'Email or Phone already registered': 'Email hoặc số điện thoại đã tồn tại.'
+        };
+
+        if (detailText in dupMap) {
+          const vi = dupMap[detailText];
+          message.error(vi);
+          const fields = [];
+          if (detailText.includes('Email')) fields.push({ name: 'email', errors: [vi] });
+          if (detailText.includes('Phone')) fields.push({ name: 'phone', errors: [vi] });
+          if (!fields.length) fields.push({ name: 'email', errors: [vi] }, { name: 'phone', errors: [vi] });
+          form.setFields(fields);
+        } else if (detailText) {
+          message.error(detailText);
+        } else {
+          const vi = 'Dữ liệu đã tồn tại trong hệ thống hoặc không hợp lệ.';
+          message.error(vi);
+          form.setFields([
+            { name: 'email', errors: [vi] },
+            { name: 'phone', errors: [vi] }
+          ]);
+        }
+      } else {
+        message.error('Lưu thất bại. Vui lòng thử lại.');
+      }
     }
   };
 
@@ -214,7 +257,7 @@ const Owners = () => {
           <Form.Item
             name="fullname"
             label="Họ tên"
-            rules={[{ required: true, message: 'Vui lòng nhập họ tên!' }]}
+            rules={[{ required: true, message: 'Vui lòng nhập họ tên!' }, { min: 3, message: 'Họ tên phải có ít nhất 3 ký tự' }]}
           >
             <Input placeholder="Nhập họ tên chủ trọ" />
           </Form.Item>
@@ -224,7 +267,7 @@ const Owners = () => {
             label="Số điện thoại"
             rules={[
               { required: true, message: 'Vui lòng nhập số điện thoại!' },
-              { pattern: /^[0-9]{10,11}$/, message: 'Số điện thoại không hợp lệ!' }
+              { pattern: /^\d{10,11}$/, message: 'Số điện thoại không hợp lệ!' }
             ]}
           >
             <Input placeholder="Nhập số điện thoại" />
@@ -247,7 +290,18 @@ const Owners = () => {
               label="Mật khẩu"
               rules={[
                 { required: true, message: 'Vui lòng nhập mật khẩu!' },
-                { min: 6, message: 'Mật khẩu phải có ít nhất 6 ký tự!' }
+                { min: 8, message: 'Mật khẩu tối thiểu 8 ký tự' },
+                ({ getFieldValue }) => ({
+                  validator(_, value) {
+                    if (!value) return Promise.resolve();
+                    const hasUpper = /[A-Z]/.test(value);
+                    const hasLower = /[a-z]/.test(value);
+                    const hasDigit = /\d/.test(value);
+                    const hasSpecial = /[^A-Za-z0-9]/.test(value);
+                    if (hasUpper && hasLower && hasDigit && hasSpecial) return Promise.resolve();
+                    return Promise.reject(new Error('Mật khẩu phải có chữ hoa, chữ thường, số và ký tự đặc biệt'));
+                  },
+                })
               ]}
             >
               <Input.Password placeholder="Nhập mật khẩu" />

@@ -29,8 +29,8 @@ def read_houses(
     return houses
 
 @router.get("/{house_id}", response_model=House)
-def read_house(house_id: int, db: Session = Depends(get_db)):
-    db_house = house_crud.get_house_by_id(db, house_id=house_id)
+def read_house(house_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_active_user)):
+    db_house = house_crud.get_house_by_id(db, house_id=house_id, owner_id=current_user.owner_id)
     if db_house is None:
         raise HTTPException(status_code=404, detail="House not found")
     return db_house
@@ -39,16 +39,17 @@ def read_house(house_id: int, db: Session = Depends(get_db)):
 def update_house(
     house_id: int,
     house_update: HouseUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
 ):
-    db_house = house_crud.update_house(db, house_id=house_id, house_update=house_update)
+    db_house = house_crud.update_house(db, house_id=house_id, house_update=house_update, owner_id=current_user.owner_id)
     if db_house is None:
         raise HTTPException(status_code=404, detail="House not found")
     return db_house
 
 @router.delete("/{house_id}")
-def delete_house(house_id: int, db: Session = Depends(get_db)):
-    db_house = house_crud.delete_house(db, house_id=house_id)
+def delete_house(house_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_active_user)):
+    db_house = house_crud.delete_house(db, house_id=house_id, owner_id=current_user.owner_id)
     if db_house is None:
         raise HTTPException(status_code=404, detail="House not found")
     return {"message": "House deleted successfully"}

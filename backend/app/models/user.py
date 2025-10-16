@@ -6,7 +6,7 @@ from app.core.database import Base
 class Role(Base):
     __tablename__ = "roles"
     
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     authority = Column(String(50), unique=True, nullable=False)
     
     users = relationship("User", back_populates="role")
@@ -14,7 +14,7 @@ class Role(Base):
 class User(Base):
     __tablename__ = "users"
     
-    owner_id = Column(Integer, primary_key=True, index=True)
+    owner_id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     fullname = Column(String(100), nullable=False)
     phone = Column(String(20), unique=True, nullable=False)
     email = Column(String(100), unique=True, nullable=False)
