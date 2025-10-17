@@ -75,14 +75,18 @@ const Dashboard = () => {
     {
       title: 'Hành động',
       key: 'action',
+      align: 'center',
+      width: 200,
       render: (_, record) => (
-        <Button 
-          type="link" 
-          icon={<EyeOutlined />}
-          onClick={() => navigate(`/rooms?house=${record.house_id}`)}
-        >
-          Xem chi tiết
-        </Button>
+        <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 8 }}>
+          <Button
+            type="link"
+            icon={<EyeOutlined />}
+            onClick={() => navigate(`/rooms?house=${record.house_id}`)}
+          >
+            Xem chi tiết
+          </Button>
+        </div>
       ),
     },
   ];

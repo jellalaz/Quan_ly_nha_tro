@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { 
+import React, { useState, useEffect, useMemo } from 'react';
+import {
   Card, 
   Table, 
   Button, 
@@ -43,6 +43,7 @@ const Contracts = () => {
   const navigate = useNavigate();
 
   const roomId = searchParams.get('room');
+  const [roomsAll, setRoomsAll] = useState([]);
 
   useEffect(() => {
     fetchHouses();
@@ -52,6 +53,16 @@ const Contracts = () => {
       fetchAllContracts();
     }
   }, [roomId]);
+
+  useEffect(() => {
+    // Load all rooms for name mapping
+    (async () => {
+      try {
+        const allRooms = await roomService.getAll();
+        setRoomsAll(allRooms);
+      } catch (_) {}
+    })();
+  }, []);
 
   const fetchHouses = async () => {
     try {
@@ -154,6 +165,13 @@ const Contracts = () => {
     }
   };
 
+  const roomsMap = useMemo(() => {
+    const m = {};
+    roomsAll.forEach(r => { m[r.room_id] = r; });
+    rooms.forEach(r => { m[r.room_id] = r; }); // prefer freshly selected list
+    return m;
+  }, [roomsAll, rooms]);
+
   const columns = [
     {
       title: 'Tên khách thuê',
@@ -175,7 +193,7 @@ const Contracts = () => {
       title: 'Phòng',
       dataIndex: 'room',
       key: 'room',
-      render: (room) => room?.name || 'N/A',
+      render: (_, record) => record.room?.name || roomsMap[record.room_id]?.name || 'N/A',
     },
     {
       title: 'Tiền thuê/tháng',
@@ -208,9 +226,11 @@ const Contracts = () => {
     {
       title: 'Hành động',
       key: 'action',
+      align: 'center',
+      width: 260,
       render: (_, record) => (
-        <Space size="small">
-          <Button 
+        <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 8 }}>
+          <Button
             type="link" 
             icon={<FileTextOutlined />}
             onClick={() => navigate(`/invoices?contract=${record.rr_id}`)}
@@ -236,7 +256,7 @@ const Contracts = () => {
               </Button>
             </Popconfirm>
           )}
-        </Space>
+        </div>
       ),
     },
   ];

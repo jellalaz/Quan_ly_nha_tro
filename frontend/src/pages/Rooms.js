@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { 
+import React, { useState, useEffect, useMemo } from 'react';
+import {
   Card, 
   Table, 
   Button, 
@@ -176,6 +176,12 @@ const Rooms = () => {
     }
   };
 
+  const housesById = useMemo(() => {
+    const m = {};
+    houses.forEach(h => { m[h.house_id] = h; });
+    return m;
+  }, [houses]);
+
   const columns = [
     {
       title: 'Tên phòng',
@@ -208,14 +214,16 @@ const Rooms = () => {
       title: 'Nhà trọ',
       dataIndex: 'house',
       key: 'house',
-      render: (house) => house?.name || 'N/A',
+      render: (_, record) => (record.house?.name) || housesById[record.house_id]?.name || 'N/A',
     },
     {
       title: 'Hành động',
       key: 'action',
+      align: 'center',
+      width: 280,
       render: (_, record) => (
-        <Space size="small">
-          <Button 
+        <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 8 }}>
+          <Button
             type="link" 
             icon={<HomeOutlined />}
             onClick={() => handleViewAssets(record)}
@@ -246,7 +254,7 @@ const Rooms = () => {
               Xóa
             </Button>
           </Popconfirm>
-        </Space>
+        </div>
       ),
     },
   ];

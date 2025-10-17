@@ -120,9 +120,11 @@ const Houses = () => {
     {
       title: 'Hành động',
       key: 'action',
+      align: 'center',
+      width: 260,
       render: (_, record) => (
-        <Space size="small">
-          <Button 
+        <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 8 }}>
+          <Button
             type="link" 
             icon={<EyeOutlined />}
             onClick={() => navigate(`/rooms?house=${record.house_id}`)}
@@ -146,7 +148,7 @@ const Houses = () => {
               Xóa
             </Button>
           </Popconfirm>
-        </Space>
+        </div>
       ),
     },
   ];

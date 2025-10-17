@@ -1,12 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { 
+import React, { useState, useEffect, useMemo } from 'react';
+import {
   Card, 
   Table, 
   Button, 
   Modal, 
   Form, 
-  Input, 
-  DatePicker, 
+  DatePicker,
   InputNumber,
   message,
   Space,
@@ -20,7 +19,6 @@ import {
 import { 
   PlusOutlined, 
   EditOutlined, 
-  DollarOutlined,
   CheckOutlined,
   FilePdfOutlined,
   EyeOutlined
@@ -28,9 +26,9 @@ import {
 import { useSearchParams } from 'react-router-dom';
 import { invoiceService } from '../services/invoiceService';
 import { rentedRoomService } from '../services/rentedRoomService';
+import { roomService } from '../services/roomService';
 import dayjs from 'dayjs';
 
-const { TextArea } = Input;
 const { Option } = Select;
 
 const Invoices = () => {
@@ -45,6 +43,7 @@ const Invoices = () => {
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [electricityUnitPrice, setElectricityUnitPrice] = useState(3500); // Default price per kWh
   const [previousElectricityNum, setPreviousElectricityNum] = useState(0);
+  const [roomsAll, setRoomsAll] = useState([]);
 
   const contractId = searchParams.get('contract');
 
@@ -56,6 +55,28 @@ const Invoices = () => {
       fetchAllInvoices();
     }
   }, [contractId]);
+
+  useEffect(() => {
+    // Load rooms for UI labels
+    (async () => {
+      try {
+        const allRooms = await roomService.getAll();
+        setRoomsAll(allRooms);
+      } catch (_) {}
+    })();
+  }, []);
+
+  const roomsMap = useMemo(() => {
+    const m = {};
+    roomsAll.forEach(r => { m[r.room_id] = r; });
+    return m;
+  }, [roomsAll]);
+
+  const contractsMap = useMemo(() => {
+    const m = {};
+    contracts.forEach(c => { m[c.rr_id] = c; });
+    return m;
+  }, [contracts]);
 
   const fetchContracts = async () => {
     try {
@@ -95,10 +116,11 @@ const Invoices = () => {
     form.resetFields();
     
     if (contractId) {
-      form.setFieldsValue({ rr_id: parseInt(contractId) });
-      
+      const cid = Number(contractId);
+      form.setFieldsValue({ rr_id: cid });
+
       // Get contract details and previous invoices
-      const contract = contracts.find(c => c.rr_id == contractId);
+      const contract = contracts.find(c => c.rr_id === cid);
       if (contract) {
         // Set prices from contract
         form.setFieldsValue({ 
@@ -107,29 +129,23 @@ const Invoices = () => {
           internet_price: contract.internet_price || 100000,
           general_price: contract.general_price || 100000
         });
-        
+
         // Set electricity unit price from contract
         setElectricityUnitPrice(contract.electricity_unit_price || 3500);
-        
-        // Get previous invoices to determine if this is first month
+
+        // Get previous invoices to determine current previous meter reading
         try {
-          const previousInvoices = await invoiceService.getByRentedRoom(contractId);
-          let prevElecNum = 0;
-          
+          const previousInvoices = await invoiceService.getByRentedRoom(cid);
+          let prevReading = Number(contract.initial_electricity_num || 0);
+
           if (previousInvoices && previousInvoices.length > 0) {
-            // Not first month - get last invoice's electricity number
-            const lastInvoice = previousInvoices.sort((a, b) => 
-              new Date(b.created_at) - new Date(a.created_at)
-            )[0];
-            prevElecNum = lastInvoice.electricity_num || 0;
-          } else {
-            // First month - use initial electricity from contract
-            prevElecNum = contract.initial_electricity_num || 0;
+            const totalUsage = previousInvoices.reduce((sum, inv) => sum + Number(inv.electricity_num || 0), 0);
+            prevReading += totalUsage;
           }
-          
-          setPreviousElectricityNum(prevElecNum);
-          form.setFieldsValue({ 
-            previous_electricity_num: prevElecNum
+
+          setPreviousElectricityNum(prevReading);
+          form.setFieldsValue({
+            previous_electricity_num: prevReading
           });
         } catch (error) {
           console.error('Error fetching previous invoices:', error);
@@ -141,8 +157,18 @@ const Invoices = () => {
 
   const handleEdit = (record) => {
     setEditingInvoice(record);
+    // Set unit price from the related contract if available
+    const contract = contracts.find(c => c.rr_id === record.rr_id);
+    if (contract) {
+      setElectricityUnitPrice(contract.electricity_unit_price || 3500);
+    }
+    // In edit mode, we only know the used kWh (electricity_num). Treat previous as 0 and current as usage for UI.
+    setPreviousElectricityNum(0);
     form.setFieldsValue({
       ...record,
+      previous_electricity_num: 0,
+      current_electricity_num: record.electricity_num || 0,
+      electricity_price: record.electricity_price || 0,
       due_date: dayjs(record.due_date),
       payment_date: record.payment_date ? dayjs(record.payment_date) : null,
     });
@@ -165,27 +191,37 @@ const Invoices = () => {
 
   const handleSubmit = async (values) => {
     try {
-      const submitData = {
-        ...values,
-        due_date: values.due_date.format('YYYY-MM-DD'),
-        payment_date: values.payment_date ? values.payment_date.format('YYYY-MM-DD') : null,
+      // Derive electricity usage (kWh) and ensure only backend-allowed fields are sent
+      const prevNum = Number(values.previous_electricity_num || 0);
+      const currNum = Number(values.current_electricity_num || 0);
+      const usage = currNum >= prevNum ? (currNum - prevNum) : Number(values.electricity_num || 0);
+
+      const basePayload = {
+        price: Number(values.price || 0),
+        water_price: Number(values.water_price || 0),
+        internet_price: Number(values.internet_price || 0),
+        general_price: Number(values.general_price || 0),
+        electricity_price: Number(values.electricity_price || 0),
+        electricity_num: Number(usage || 0),
+        water_num: Number(values.water_num || 0),
+        due_date: values.due_date ? values.due_date.format('YYYY-MM-DDTHH:mm:ss') : undefined,
+        payment_date: values.payment_date ? values.payment_date.format('YYYY-MM-DDTHH:mm:ss') : undefined,
       };
 
-      let result;
       if (editingInvoice) {
-        result = await invoiceService.update(editingInvoice.invoice_id, submitData);
+        await invoiceService.update(editingInvoice.invoice_id, basePayload);
         message.success('Cập nhật hóa đơn thành công!');
       } else {
-        result = await invoiceService.create(submitData);
+        const createPayload = { rr_id: values.rr_id, ...basePayload };
+        const created = await invoiceService.create(createPayload);
         message.success('Tạo hóa đơn thành công!');
-        // Show the created invoice
-        const createdInvoice = await invoiceService.getById(result.invoice_id);
-        setSelectedInvoice(createdInvoice);
+        // Show the created invoice (use result which already includes details)
+        setSelectedInvoice(created);
         setViewInvoiceModal(true);
       }
       setModalVisible(false);
       if (contractId) {
-        fetchInvoicesByContract(contractId);
+        fetchInvoicesByContract(Number(contractId));
       } else {
         fetchAllInvoices();
       }
@@ -194,25 +230,43 @@ const Invoices = () => {
     }
   };
 
-  const calculateTotal = (values) => {
-    const total = (values.price || 0) + 
-                  (values.water_price || 0) + 
-                  (values.internet_price || 0) + 
-                  (values.general_price || 0) + 
-                  (values.electricity_price || 0);
-    return total;
-  };
+  const calculateTotal = (values) => (
+    (values.price || 0) +
+    (values.water_price || 0) +
+    (values.internet_price || 0) +
+    (values.general_price || 0) +
+    (values.electricity_price || 0)
+  );
 
   const handleElectricityChange = (currentNum) => {
-    if (currentNum && currentNum >= previousElectricityNum) {
+    if (currentNum === null || currentNum === undefined) return;
+    if (currentNum >= previousElectricityNum) {
       const usage = currentNum - previousElectricityNum;
       const price = usage * electricityUnitPrice;
-      form.setFieldsValue({ 
+      form.setFieldsValue({
         electricity_price: Math.round(price),
-        electricity_num: currentNum
+        electricity_num: usage,
+        current_electricity_num: currentNum,
       });
     } else if (currentNum < previousElectricityNum) {
       message.warning('Số điện hiện tại phải lớn hơn hoặc bằng số điện kỳ trước!');
+    }
+  };
+
+  const handlePreviousElectricityChange = (prevNum) => {
+    if (prevNum === null || prevNum === undefined) return;
+    setPreviousElectricityNum(Number(prevNum));
+    const currentNum = Number(form.getFieldValue('current_electricity_num') || 0);
+    if (currentNum >= prevNum) {
+      const usage = currentNum - prevNum;
+      const price = usage * electricityUnitPrice;
+      form.setFieldsValue({
+        electricity_price: Math.round(price),
+        electricity_num: usage,
+      });
+    } else if (currentNum) {
+      message.warning('Số điện hiện tại phải lớn hơn hoặc bằng số điện kỳ trước!');
+      form.setFieldsValue({ electricity_price: 0, electricity_num: 0 });
     }
   };
 
@@ -220,35 +274,29 @@ const Invoices = () => {
     const contract = contracts.find(c => c.rr_id === rrId);
     if (contract) {
       // Set prices from contract
-      form.setFieldsValue({ 
+      form.setFieldsValue({
         price: contract.monthly_rent,
         water_price: contract.water_price || 80000,
         internet_price: contract.internet_price || 100000,
         general_price: contract.general_price || 100000
       });
-      
+
       // Set electricity unit price from contract
       setElectricityUnitPrice(contract.electricity_unit_price || 3500);
-      
-      // Get previous invoices to determine if this is first month
+
+      // Compute previous meter reading: initial + sum(previous usages)
       try {
         const previousInvoices = await invoiceService.getByRentedRoom(rrId);
-        let prevElecNum = 0;
-        
+        let prevReading = Number(contract.initial_electricity_num || 0);
+
         if (previousInvoices && previousInvoices.length > 0) {
-          // Not first month - get last invoice's electricity number
-          const lastInvoice = previousInvoices.sort((a, b) => 
-            new Date(b.created_at) - new Date(a.created_at)
-          )[0];
-          prevElecNum = lastInvoice.electricity_num || 0;
-        } else {
-          // First month - use initial electricity from contract
-          prevElecNum = contract.initial_electricity_num || 0;
+          const totalUsage = previousInvoices.reduce((sum, inv) => sum + Number(inv.electricity_num || 0), 0);
+          prevReading += totalUsage;
         }
-        
-        setPreviousElectricityNum(prevElecNum);
-        form.setFieldsValue({ 
-          previous_electricity_num: prevElecNum
+
+        setPreviousElectricityNum(prevReading);
+        form.setFieldsValue({
+          previous_electricity_num: prevReading
         });
       } catch (error) {
         console.error('Error fetching previous invoices:', error);
@@ -267,7 +315,7 @@ const Invoices = () => {
     
     printWindow.document.write(`
       <!DOCTYPE html>
-      <html>
+      <html lang="vi">
       <head>
         <title>Hóa đơn #${invoice.invoice_id}</title>
         <meta charset="utf-8">
@@ -369,13 +417,13 @@ const Invoices = () => {
       title: 'Khách thuê',
       dataIndex: 'rented_room',
       key: 'tenant_name',
-      render: (rentedRoom) => rentedRoom?.tenant_name || 'N/A',
+      render: (rentedRoom, record) => rentedRoom?.tenant_name || contractsMap[record.rr_id]?.tenant_name || 'N/A',
     },
     {
       title: 'Phòng',
       dataIndex: 'rented_room',
       key: 'room_name',
-      render: (rentedRoom) => rentedRoom?.room?.name || 'N/A',
+      render: (rentedRoom, record) => rentedRoom?.room?.name || roomsMap[contractsMap[record.rr_id]?.room_id]?.name || 'N/A',
     },
     {
       title: 'Tổng tiền',
@@ -405,9 +453,11 @@ const Invoices = () => {
     {
       title: 'Hành động',
       key: 'action',
+      align: 'center',
+      width: 300,
       render: (_, record) => (
-        <Space size="small">
-          <Button 
+        <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 8 }}>
+          <Button
             type="link" 
             icon={<EyeOutlined />}
             onClick={() => handleViewInvoice(record)}
@@ -440,7 +490,7 @@ const Invoices = () => {
               </Button>
             </Popconfirm>
           )}
-        </Space>
+        </div>
       ),
     },
   ];
@@ -448,7 +498,7 @@ const Invoices = () => {
   return (
     <div>
       <Card
-        title={`Quản lý hóa đơn${contractId ? ` - ${contracts.find(c => c.rr_id == contractId)?.tenant_name}` : ''}`}
+        title={`Quản lý hóa đơn${contractId ? ` - ${contracts.find(c => c.rr_id === Number(contractId))?.tenant_name}` : ''}`}
         extra={
           <Space>
             <Select
@@ -465,7 +515,7 @@ const Invoices = () => {
             >
               {contracts.map(contract => (
                 <Option key={contract.rr_id} value={contract.rr_id}>
-                  {contract.tenant_name} - {contract.room?.name}
+                  {contract.tenant_name} - {contract.room?.name || roomsMap[contract.room_id]?.name || 'N/A'}
                 </Option>
               ))}
             </Select>
@@ -513,7 +563,7 @@ const Invoices = () => {
             >
               {contracts.map(contract => (
                 <Option key={contract.rr_id} value={contract.rr_id}>
-                  {contract.tenant_name} - {contract.room?.name}
+                  {contract.tenant_name} - {contract.room?.name || roomsMap[contract.room_id]?.name || 'N/A'}
                 </Option>
               ))}
             </Select>
@@ -573,9 +623,9 @@ const Invoices = () => {
                 label="Số điện kỳ trước (kWh)"
               >
                 <InputNumber 
-                  disabled
                   style={{ width: '100%' }}
                   placeholder="Số điện kỳ trước"
+                  onChange={handlePreviousElectricityChange}
                 />
               </Form.Item>
             </Col>
@@ -583,7 +633,7 @@ const Invoices = () => {
               <Form.Item
                 name="current_electricity_num"
                 label="Số điện hiện tại (kWh)"
-                rules={[{ required: true, message: 'Vui lòng nhập số điện hiện tại!' }]}
+                rules={[{ required: true, message: 'Vui lòng nhập so dien hien tai!' }]}
               >
                 <InputNumber 
                   min={0} 

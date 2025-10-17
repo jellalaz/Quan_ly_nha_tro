@@ -3,6 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from .core.database import engine
 from .models import user, house, room, asset, rented_room, invoice
 from .api.v1.api import api_router
+# Ensure Pydantic schemas forward refs are resolved at startup
+from . import schemas  # noqa: F401
 
 # Import all models to ensure they are registered
 user.User
