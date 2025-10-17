@@ -10,10 +10,6 @@ import Rooms from './pages/Rooms';
 import Contracts from './pages/Contracts';
 import Invoices from './pages/Invoices';
 import Reports from './pages/Reports';
-import Owners from './pages/Owners';
-import OwnerDetails from './pages/OwnerDetails';
-import AdminHouses from './pages/AdminHouses';
-import AdminReports from './pages/AdminReports';
 import Register from './pages/Register';
 import Profile from './pages/Profile';
 import authService from './services/authService';
@@ -29,17 +25,6 @@ const ProtectedRoute = ({ children }) => {
 // Public Route Component
 const PublicRoute = ({ children }) => {
     if (authService.isAuthenticated()) {
-        return <Navigate to="/dashboard" replace />;
-    }
-    return children;
-};
-
-// Admin Route Component
-const AdminRoute = ({ children }) => {
-    if (!authService.isAuthenticated()) {
-        return <Navigate to="/login" replace />;
-    }
-    if (!authService.isAdmin()) {
         return <Navigate to="/dashboard" replace />;
     }
     return children;
@@ -88,39 +73,6 @@ function App() {
                         <Route index element={<Navigate to="/dashboard" replace />} />
                         <Route path="dashboard" element={<Dashboard />} />
 
-                        {/* Admin routes */}
-                        <Route
-                            path="owners"
-                            element={
-                                <AdminRoute>
-                                    <Owners />
-                                </AdminRoute>
-                            }
-                        />
-                        <Route
-                            path="owners/:ownerId"
-                            element={
-                                <AdminRoute>
-                                    <OwnerDetails />
-                                </AdminRoute>
-                            }
-                        />
-                        <Route
-                            path="admin/houses"
-                            element={
-                                <AdminRoute>
-                                    <AdminHouses />
-                                </AdminRoute>
-                            }
-                        />
-                        <Route
-                            path="admin/reports"
-                            element={
-                                <AdminRoute>
-                                    <AdminReports />
-                                </AdminRoute>
-                            }
-                        />
 
                         {/* Owner routes */}
                         <Route

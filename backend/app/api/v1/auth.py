@@ -22,6 +22,13 @@ async def login_for_access_token(
             detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
+    # Only allow owner role to log in
+    if not hasattr(user, 'role') or user.role is None:
+        db.refresh(user, ['role'])
+    if not user.role or user.role.authority != 'owner':
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only owner is allowed to login")
+
     access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
     access_token = create_access_token(
         data={"sub": user.email, "oid": user.owner_id}, expires_delta=access_token_expires

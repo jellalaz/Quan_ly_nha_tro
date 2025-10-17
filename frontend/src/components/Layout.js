@@ -9,8 +9,7 @@ import {
   BankOutlined,
   ShopOutlined,
   FileTextOutlined,
-  DollarOutlined,
-  TeamOutlined
+  DollarOutlined
 } from '@ant-design/icons';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { authService } from '../services/authService';
@@ -40,35 +39,8 @@ const Layout = ({ children }) => {
     navigate('/login');
   };
 
-  const isAdmin = authService.isAdmin();
-  const isOwner = authService.isOwner();
-
-  // Menu items for admin
-  const adminMenuItems = [
-    {
-      key: '/dashboard',
-      icon: <HomeOutlined />,
-      label: 'Dashboard',
-    },
-    {
-      key: '/owners',
-      icon: <TeamOutlined />,
-      label: 'Quản lý chủ trọ',
-    },
-    {
-      key: '/admin/houses',
-      icon: <BankOutlined />,
-      label: 'Toàn bộ nhà trọ',
-    },
-    {
-      key: '/admin/reports',
-      icon: <FileTextOutlined />,
-      label: 'Báo cáo & Phân tích',
-    },
-  ];
-
-  // Menu items for owner
-  const ownerMenuItems = [
+  // Owner menu items only
+  const menuItems = [
     {
       key: '/dashboard',
       icon: <HomeOutlined />,
@@ -100,9 +72,6 @@ const Layout = ({ children }) => {
       label: 'Báo cáo & AI',
     },
   ];
-
-  // Select menu items based on role
-  const menuItems = isAdmin ? adminMenuItems : ownerMenuItems;
 
   const userMenuItems = [
     {

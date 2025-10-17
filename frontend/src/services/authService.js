@@ -58,10 +58,6 @@ export const authService = {
         return userInfo?.role?.authority || null;
     },
 
-    isAdmin: () => {
-        return authService.getUserRole() === 'admin';
-    },
-
     isOwner: () => {
         return authService.getUserRole() === 'owner';
     },

@@ -83,15 +83,3 @@ def require_role(required_role: str):
             )
         return current_user
     return role_checker
-
-async def get_admin_user(current_user: User = Depends(get_current_active_user), db: Session = Depends(get_db)):
-    """Dependency to check if current user is admin"""
-    if not hasattr(current_user, 'role') or current_user.role is None:
-        db.refresh(current_user, ['role'])
-    
-    if current_user.role.authority != "admin":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Access denied. Admin role required."
-        )
-    return current_user

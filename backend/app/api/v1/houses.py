@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 
 from app.core.database import get_db
-from app.core.security import get_current_active_user, get_admin_user
+from app.core.security import get_current_active_user
 from app.schemas.house import House, HouseCreate, HouseUpdate
 from app.schemas.user import User
 from app.crud import house as house_crud
@@ -53,28 +53,3 @@ def delete_house(house_id: int, db: Session = Depends(get_db), current_user: Use
     if db_house is None:
         raise HTTPException(status_code=404, detail="House not found")
     return {"message": "House deleted successfully"}
-
-# Admin-only endpoint to get houses by specific owner
-@router.get("/owner/{owner_id}", response_model=List[House])
-async def get_houses_by_owner_id(
-    owner_id: int,
-    skip: int = 0,
-    limit: int = 100,
-    db: Session = Depends(get_db),
-    admin_user: User = Depends(get_admin_user)
-):
-    """Get all houses of a specific owner - Admin only"""
-    houses = house_crud.get_houses_by_owner(db, owner_id=owner_id, skip=skip, limit=limit)
-    return houses
-
-# Admin-only endpoint to get all houses in system
-@router.get("/admin/all", response_model=List[House])
-async def get_all_houses_admin(
-    skip: int = 0,
-    limit: int = 100,
-    db: Session = Depends(get_db),
-    admin_user: User = Depends(get_admin_user)
-):
-    """Get all houses in the system - Admin only"""
-    houses = house_crud.get_all_houses(db, skip=skip, limit=limit)
-    return houses

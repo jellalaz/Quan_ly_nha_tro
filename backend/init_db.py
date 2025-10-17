@@ -12,22 +12,9 @@ def init_db():
     db = SessionLocal()
 
     try:
-        # Create roles
-        admin_role = user.Role(authority="admin")
+        # Create only owner role
         owner_role = user.Role(authority="owner")
-        db.add(admin_role)
         db.add(owner_role)
-        db.commit()
-
-        # Create admin user
-        admin_user = user.User(
-            fullname="Admin User",
-            phone="0123456789",
-            email="admin@example.com",
-            password=get_password_hash("admin123"),
-            role_id=admin_role.id
-        )
-        db.add(admin_user)
         db.commit()
 
         # Create owner user
@@ -130,7 +117,6 @@ def init_db():
         db.commit()
 
         print("Database initialized successfully!")
-        print("Admin user: admin@example.com / admin123")
         print("Owner user: owner@example.com / owner123")
 
     except Exception as e:
