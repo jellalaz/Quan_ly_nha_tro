@@ -35,6 +35,8 @@ const Rooms = () => {
   const [houses, setHouses] = useState([]);
   const [assets, setAssets] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [pageSize, setPageSize] = useState(10);
+
   const [modalVisible, setModalVisible] = useState(false);
   const [assetModalVisible, setAssetModalVisible] = useState(false);
   const [editingRoom, setEditingRoom] = useState(null);
@@ -297,11 +299,14 @@ const Rooms = () => {
           rowKey="room_id"
           loading={loading}
           pagination={{
-            pageSize: 10,
+            pageSize: pageSize,
             showSizeChanger: true,
+            pageSizeOptions: ['10', '20', '50', '100'],
+            onShowSizeChange: (current, size) => setPageSize(size),
             showQuickJumper: true,
             showTotal: (total) => `Tổng cộng ${total} phòng`,
           }}
+
         />
       </Card>
 
