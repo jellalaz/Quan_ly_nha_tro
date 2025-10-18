@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .core.database import engine
 from .models import user, house, room, asset, rented_room, invoice
-from .api.v1.api import api_router
+from .api.v2.api import api_router
 # Ensure Pydantic schemas forward refs are resolved at startup
 from . import schemas  # noqa: F401
 
@@ -17,7 +17,7 @@ invoice.Invoice
 # Create database tables
 user.Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="Room Management API", version="1.0.0")
+app = FastAPI(title="Room Management API", version="2.0.0")
 
 # CORS middleware
 app.add_middleware(
@@ -29,7 +29,7 @@ app.add_middleware(
 )
 
 # Include API router
-app.include_router(api_router, prefix="/api/v1")
+app.include_router(api_router, prefix="/api/v2")
 
 @app.get("/")
 def read_root():
@@ -37,4 +37,4 @@ def read_root():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run("app", host="127.0.0.1", port=8000, reload=True)

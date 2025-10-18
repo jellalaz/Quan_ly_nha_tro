@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator, model_validator
 from typing import Optional, List
 from datetime import datetime
 
@@ -16,6 +16,22 @@ class RentedRoomBase(BaseModel):
     water_price: float = 80000
     internet_price: float = 100000
     general_price: float = 100000
+
+    # ensure phone number must be correct format
+    @field_validator("tenant_phone")
+    def check_tenant_phone(cls, value):
+        if not value.isdigit():
+            raise ValueError("Phone nubmer must contain only digits")
+        if len(value) > 10 or len(value) < 9:
+            raise ValueError("phone must have between 9 and 10 numbers")
+        return value
+    
+    # ensure start and end date must right
+    @model_validator(mode="after")
+    def check_start_end_date(self):
+        if self.start_date > self.end_date:
+            raise ValueError("start date must be before end date")
+        return self
 
 class RentedRoomCreate(RentedRoomBase):
     room_id: int

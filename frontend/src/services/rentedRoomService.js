@@ -16,9 +16,32 @@ export const rentedRoomService = {
     return response.data;
   },
 
+  // create: async (rentedRoomData) => {
+  //   const response = await api.post('/rented-rooms/', rentedRoomData);
+  //   return response.data;
+  // },
+
   create: async (rentedRoomData) => {
-    const response = await api.post('/rented-rooms/', rentedRoomData);
-    return response.data;
+    try {
+      const response = await api.post('/rented-rooms/', rentedRoomData);
+      return response.data;
+    } catch (error) {
+      // Axios trả lỗi HTTP ở đây
+      if (error.response) {
+        // error.response.data chứa chi tiết lỗi từ FastAPI
+        console.log(error.response.data);
+
+        // Ví dụ hiển thị alert hoặc return lỗi
+        alert(error.response.data.detail?.[0]?.msg || "so nguoi thue qua lon");
+        // Này tớ muốn giữ lại form khi mình bấm OK ở alert. (không biết còn cách khác ko)
+        const response = await api.post('/rented-rooms/', rentedRoomData);
+        return response.data;
+      } else {
+        console.error(error);
+        alert("Uuuuuuuuuuuuuuuu");
+        return null;
+      }
+    }
   },
 
   update: async (id, rentedRoomData) => {

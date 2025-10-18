@@ -11,13 +11,15 @@ def create_rented_room(db: Session, rented_room: RentedRoomCreate, owner_id: int
     room = (
         db.query(Room)
         .join(House)
-        .filter(Room.room_id == rented_room.room_id, House.owner_id == owner_id, Room.is_available == True)
+        .filter(Room.room_id == rented_room.room_id, 
+                House.owner_id == owner_id, 
+                Room.is_available == True,  
+                rented_room.number_of_tenants <= Room.capacity)
         .first()
     )
     if not room:
         return None
-
-    db_rented_room = RentedRoom(**rented_room.dict())
+    db_rented_room = RentedRoom(**rented_room.model_dump())
     db.add(db_rented_room)
     
     # Update room availability
