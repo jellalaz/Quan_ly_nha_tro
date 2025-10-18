@@ -17,13 +17,6 @@ class RevenueStatsResponse(BaseModel):
     pending_invoices: int
     avg_monthly_revenue: float
 
-class RoomSearchRequest(BaseModel):
-    min_price: float
-    max_price: float
-    min_capacity: int
-    max_capacity: int
-    district: Optional[str] = None
-
 class ReportRequest(BaseModel):
     report_type: str  # 'revenue', 'occupancy', 'tenant'
     start_date: date
@@ -119,69 +112,6 @@ async def get_revenue_stats(
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Lỗi khi lấy thống kê doanh thu: {str(e)}")
-
-@router.post("/search-rooms")
-async def search_available_rooms(
-    request: RoomSearchRequest,
-    current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
-):
-    """
-    Tìm phòng trống phù hợp theo chủ nhà (owner)
-    """
-    try:
-        result = db.execute(text("""
-            SELECT 
-                r.room_id,
-                r.name as room_name,
-                r.capacity,
-                r.price,
-                r.description,
-                h.name as house_name,
-                h.district,
-                h.address_line,
-                COUNT(a.asset_id) as asset_count
-            FROM rooms r
-            JOIN houses h ON r.house_id = h.house_id
-            LEFT JOIN assets a ON r.room_id = a.room_id
-            WHERE r.is_available = TRUE
-              AND r.price BETWEEN :min_price AND :max_price
-              AND r.capacity BETWEEN :min_capacity AND :max_capacity
-              AND (:district IS NULL OR h.district LIKE CONCAT('%', :district, '%'))
-              AND h.owner_id = :owner_id
-            GROUP BY r.room_id, r.name, r.capacity, r.price, r.description, h.name, h.district, h.address_line
-            ORDER BY r.price ASC
-        """), {
-            'min_price': request.min_price,
-            'max_price': request.max_price,
-            'min_capacity': request.min_capacity,
-            'max_capacity': request.max_capacity,
-            'district': request.district,
-            'owner_id': current_user.owner_id,
-        }).fetchall()
-        
-        rooms = []
-        for row in result:
-            rooms.append({
-                'room_id': row.room_id,
-                'room_name': row.room_name,
-                'capacity': row.capacity,
-                'price': float(row.price),
-                'description': row.description,
-                'house_name': row.house_name,
-                'district': row.district,
-                'address_line': row.address_line,
-                'asset_count': row.asset_count
-            })
-        
-        return {
-            'rooms': rooms,
-            'total_found': len(rooms),
-            'search_criteria': request.dict()
-        }
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Lỗi khi tìm phòng: {str(e)}")
 
 @router.post("/generate-report")
 async def generate_detailed_report(
@@ -316,55 +246,6 @@ async def create_monthly_invoices(
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Lỗi khi tạo hóa đơn: {str(e)}")
-
-@router.get("/expiring-contracts")
-async def get_expiring_contracts(
-    current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
-):
-    """
-    Lấy danh sách hợp đồng sắp hết hạn (trong 30 ngày tới) theo chủ nhà
-    """
-    try:
-        result = db.execute(text("""
-            SELECT 
-                rr.rr_id,
-                rr.tenant_name,
-                rr.tenant_phone,
-                r.name as room_name,
-                h.name as house_name,
-                rr.end_date,
-                DATEDIFF(rr.end_date, CURDATE()) as days_remaining
-            FROM rented_rooms rr
-            JOIN rooms r ON rr.room_id = r.room_id
-            JOIN houses h ON r.house_id = h.house_id
-            WHERE rr.is_active = TRUE
-              AND DATEDIFF(rr.end_date, CURDATE()) <= 30
-              AND DATEDIFF(rr.end_date, CURDATE()) > 0
-              AND h.owner_id = :owner_id
-            ORDER BY days_remaining ASC
-        """), {'owner_id': current_user.owner_id}).fetchall()
-
-        contracts = []
-        for row in result:
-            contracts.append({
-                'rr_id': row.rr_id,
-                'tenant_name': row.tenant_name,
-                'tenant_phone': row.tenant_phone,
-                'room_name': row.room_name,
-                'house_name': row.house_name,
-                'end_date': row.end_date,
-                'days_remaining': row.days_remaining
-            })
-        
-        return {
-            'expiring_contracts': contracts,
-            'total_count': len(contracts),
-            'checked_at': datetime.now()
-        }
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Lỗi khi lấy hợp đồng sắp hết hạn: {str(e)}")
 
 @router.get("/system-overview")
 async def get_system_overview(
