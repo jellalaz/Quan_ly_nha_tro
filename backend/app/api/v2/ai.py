@@ -42,7 +42,8 @@ async def chat_with_ai(
         context = {
             'include_stats': request.include_stats,
             'include_available_rooms': request.include_available_rooms,
-            'include_pending_invoices': request.include_pending_invoices
+            'include_pending_invoices': request.include_pending_invoices,
+            'owner_id': current_user.owner_id,
         }
         
         answer = ai_service.generate_response(request.question, context)
@@ -84,14 +85,15 @@ async def generate_revenue_report(
     current_user: User = Depends(get_current_active_user)
 ):
     """
-    Tạo báo cáo doanh thu bằng AI
+    Tạo báo cáo doanh thu bằng AI (phạm vi tài khoản đang đăng nhập)
     """
     try:
         report = ai_service.generate_revenue_report(
             start_date=request.start_date.strftime('%Y-%m-%d'),
-            end_date=request.end_date.strftime('%Y-%m-%d')
+            end_date=request.end_date.strftime('%Y-%m-%d'),
+            owner_id=current_user.owner_id
         )
-        
+
         return {
             "report": report,
             "period": f"{request.start_date} đến {request.end_date}",
