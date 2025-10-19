@@ -36,6 +36,7 @@ const Contracts = () => {
   const [rooms, setRooms] = useState([]);
   const [houses, setHouses] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [pageSize, setPageSize] = useState(10);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingContract, setEditingContract] = useState(null);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -316,11 +317,14 @@ const Contracts = () => {
           rowKey="rr_id"
           loading={loading}
           pagination={{
-            pageSize: 10,
+            pageSize: pageSize,
             showSizeChanger: true,
+            pageSizeOptions: ['10', '20', '50', '100'],
+            onShowSizeChange: (current, size) => setPageSize(size),
             showQuickJumper: true,
             showTotal: (total) => `Tổng cộng ${total} hợp đồng`,
           }}
+
         />
       </Card>
 

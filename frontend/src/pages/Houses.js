@@ -24,6 +24,7 @@ import { useNavigate } from 'react-router-dom';
 const Houses = () => {
   const [houses, setHouses] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [pageSize, setPageSize] = useState(10);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingHouse, setEditingHouse] = useState(null);
   const [form] = Form.useForm();
@@ -156,27 +157,28 @@ const Houses = () => {
   return (
     <div>
       <Card
-        title="Quản lý nhà trọ"
-        extra={
-          <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
-            Tạo nhà trọ mới
-          </Button>
-        }
-      >
-        <Table
-          columns={columns}
-          dataSource={houses}
-          rowKey="house_id"
-          loading={loading}
-          pagination={{
-            pageSize: 10,
-            showSizeChanger: true,
-            showQuickJumper: true,
-            showTotal: (total) => `Tổng cộng ${total} nhà trọ`,
-          }}
-        />
-      </Card>
-
+      title="Quản lý nhà trọ"
+      extra={
+        <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
+          Tạo nhà trọ mới
+        </Button>
+      }
+    >
+      <Table
+        columns={columns}
+        dataSource={houses}
+        rowKey="house_id"
+        loading={loading}
+        pagination={{
+          pageSize: pageSize,
+          showSizeChanger: true,
+          pageSizeOptions: ["10", "20", "50", "100"],
+          showQuickJumper: true,
+          onShowSizeChange: (current, size) => setPageSize(size),
+          showTotal: (total) => `Tổng cộng ${total} nhà trọ`,
+        }}
+      />
+    </Card>
       <Modal
         title={editingHouse ? 'Sửa nhà trọ' : 'Tạo nhà trọ mới'}
         open={modalVisible}
