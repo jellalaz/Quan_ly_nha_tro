@@ -22,14 +22,15 @@ async def generate_revenue_report(
     current_user: User = Depends(get_current_active_user)
 ):
     """
-    Tạo báo cáo doanh thu bằng AI
+    Tạo báo cáo doanh thu bằng AI (phạm vi tài khoản đang đăng nhập)
     """
     try:
         report = ai_service.generate_revenue_report(
             start_date=request.start_date.strftime('%Y-%m-%d'),
-            end_date=request.end_date.strftime('%Y-%m-%d')
+            end_date=request.end_date.strftime('%Y-%m-%d'),
+            owner_id=current_user.owner_id
         )
-        
+
         return {
             "report": report,
             "period": f"{request.start_date} đến {request.end_date}",

@@ -27,6 +27,7 @@ import { useSearchParams } from 'react-router-dom';
 import { invoiceService } from '../services/invoiceService';
 import { rentedRoomService } from '../services/rentedRoomService';
 import { roomService } from '../services/roomService';
+import { houseService } from '../services/houseService';
 import dayjs from 'dayjs';
 
 const { Option } = Select;
@@ -45,6 +46,7 @@ const Invoices = () => {
   const [electricityUnitPrice, setElectricityUnitPrice] = useState(3500); // Default price per kWh
   const [previousElectricityNum, setPreviousElectricityNum] = useState(0);
   const [roomsAll, setRoomsAll] = useState([]);
+  const [housesAll, setHousesAll] = useState([]);
 
   const contractId = searchParams.get('contract');
 
@@ -58,11 +60,15 @@ const Invoices = () => {
   }, [contractId]);
 
   useEffect(() => {
-    // Load rooms for UI labels
+    // Load rooms and houses for UI labels
     (async () => {
       try {
-        const allRooms = await roomService.getAll();
-        setRoomsAll(allRooms);
+        const [allRooms, houses] = await Promise.all([
+          roomService.getAll(),
+          houseService.getAll(),
+        ]);
+        setRoomsAll(allRooms || []);
+        setHousesAll(houses || []);
       } catch (_) {}
     })();
   }, []);
@@ -72,6 +78,12 @@ const Invoices = () => {
     roomsAll.forEach(r => { m[r.room_id] = r; });
     return m;
   }, [roomsAll]);
+
+  const housesMap = useMemo(() => {
+    const m = {};
+    housesAll.forEach(h => { m[h.house_id] = h; });
+    return m;
+  }, [housesAll]);
 
   const contractsMap = useMemo(() => {
     const m = {};
@@ -156,23 +168,56 @@ const Invoices = () => {
     setModalVisible(true);
   };
 
-  const handleEdit = (record) => {
+  const handleEdit = async (record) => {
     setEditingInvoice(record);
     // Set unit price from the related contract if available
     const contract = contracts.find(c => c.rr_id === record.rr_id);
     if (contract) {
       setElectricityUnitPrice(contract.electricity_unit_price || 3500);
     }
-    // In edit mode, we only know the used kWh (electricity_num). Treat previous as 0 and current as usage for UI.
-    setPreviousElectricityNum(0);
-    form.setFieldsValue({
-      ...record,
-      previous_electricity_num: 0,
-      current_electricity_num: record.electricity_num || 0,
-      electricity_price: record.electricity_price || 0,
-      due_date: dayjs(record.due_date),
-      payment_date: record.payment_date ? dayjs(record.payment_date) : null,
-    });
+
+    // Compute previous/current readings exactly as at creation time
+    try {
+      const list = await invoiceService.getByRentedRoom(record.rr_id);
+      // sort by due_date then created_at as tie-breaker
+      const sorted = [...(list || [])].sort((a, b) => {
+        const ad = new Date(a.due_date).getTime();
+        const bd = new Date(b.due_date).getTime();
+        if (ad !== bd) return ad - bd;
+        const ac = a.created_at ? new Date(a.created_at).getTime() : 0;
+        const bc = b.created_at ? new Date(b.created_at).getTime() : 0;
+        return ac - bc;
+      });
+      const idx = sorted.findIndex(i => i.invoice_id === record.invoice_id);
+      let prevReading = Number(contract?.initial_electricity_num || 0);
+      if (idx > 0) {
+        for (let i = 0; i < idx; i++) {
+          prevReading += Number(sorted[i].electricity_num || 0);
+        }
+      }
+      const currReading = prevReading + Number(record.electricity_num || 0);
+      setPreviousElectricityNum(prevReading);
+      form.setFieldsValue({
+        ...record,
+        previous_electricity_num: prevReading,
+        current_electricity_num: currReading,
+        electricity_price: record.electricity_price || 0,
+        due_date: dayjs(record.due_date),
+        payment_date: record.payment_date ? dayjs(record.payment_date) : null,
+      });
+    } catch (e) {
+      // Fallback: treat previous as 0, current as usage
+      setPreviousElectricityNum(0);
+      form.setFieldsValue({
+        ...record,
+        previous_electricity_num: 0,
+        current_electricity_num: record.electricity_num || 0,
+        electricity_price: record.electricity_price || 0,
+        due_date: dayjs(record.due_date),
+        payment_date: record.payment_date ? dayjs(record.payment_date) : null,
+      });
+    }
+
     setModalVisible(true);
   };
 
@@ -313,7 +358,16 @@ const Invoices = () => {
   const handleExportPDF = (invoice) => {
     const printWindow = window.open('', '', 'width=800,height=600');
     const total = calculateTotal(invoice);
-    
+    const roomFromInvoice = invoice.rented_room?.room;
+    const roomName = roomFromInvoice?.name || roomsMap[contractsMap[invoice.rr_id]?.room_id]?.name || 'N/A';
+    const houseName = (() => {
+      if (roomFromInvoice && roomFromInvoice.house_id) {
+        return housesMap[roomFromInvoice.house_id]?.name || 'N/A';
+      }
+      const fallbackRoom = roomsMap[contractsMap[invoice.rr_id]?.room_id] || {};
+      return housesMap[fallbackRoom.house_id]?.name || 'N/A';
+    })();
+
     printWindow.document.write(`
       <!DOCTYPE html>
       <html lang="vi">
@@ -343,51 +397,48 @@ const Invoices = () => {
         <div class="info">
           <div class="info-row">
             <span><span class="info-label">Khách thuê:</span> ${invoice.rented_room?.tenant_name || 'N/A'}</span>
-            <span><span class="info-label">Phòng:</span> ${invoice.rented_room?.room?.name || 'N/A'}</span>
+            <span><span class="info-label">Phòng:</span> ${roomName}</span>
           </div>
           <div class="info-row">
+            <span><span class="info-label">Nhà trọ:</span> ${houseName}</span>
             <span><span class="info-label">Ngày đến hạn:</span> ${new Date(invoice.due_date).toLocaleDateString('vi-VN')}</span>
-            <span><span class="info-label">Trạng thái:</span> ${invoice.is_paid ? 'Đã thanh toán' : 'Chưa thanh toán'}</span>
           </div>
-          ${invoice.payment_date ? `<div class="info-row"><span><span class="info-label">Ngày thanh toán:</span> ${new Date(invoice.payment_date).toLocaleDateString('vi-VN')}</span></div>` : ''}
+          <div class="info-row">
+            <span><span class="info-label">Trạng thái:</span> ${invoice.is_paid ? 'Đã thanh toán' : 'Chưa thanh toán'}</span>
+            ${invoice.payment_date ? `<span><span class="info-label">Ngày thanh toán:</span> ${new Date(invoice.payment_date).toLocaleDateString('vi-VN')}</span>` : ''}
+          </div>
         </div>
         
         <table>
           <thead>
             <tr>
               <th>Dịch vụ</th>
-              <th>Số lượng</th>
               <th>Đơn giá (VNĐ)</th>
             </tr>
           </thead>
           <tbody>
             <tr>
               <td>Tiền thuê phòng</td>
-              <td>1</td>
               <td>${(invoice.price || 0).toLocaleString()}</td>
             </tr>
             ${invoice.water_price ? `<tr>
               <td>Tiền nước</td>
-              <td>-</td>
               <td>${(invoice.water_price || 0).toLocaleString()}</td>
             </tr>` : ''}
             ${invoice.internet_price ? `<tr>
               <td>Tiền internet</td>
-              <td>-</td>
               <td>${(invoice.internet_price || 0).toLocaleString()}</td>
             </tr>` : ''}
             ${invoice.electricity_price ? `<tr>
-              <td>Tiền điện</td>
-              <td>${invoice.electricity_num || '-'} kWh</td>
+              <td>Tiền điện (${invoice.electricity_num || '-'} kWh)</td>
               <td>${(invoice.electricity_price || 0).toLocaleString()}</td>
             </tr>` : ''}
             ${invoice.general_price ? `<tr>
               <td>Phí dịch vụ chung</td>
-              <td>-</td>
               <td>${(invoice.general_price || 0).toLocaleString()}</td>
             </tr>` : ''}
             <tr class="total-row">
-              <td colspan="2">TỔNG CỘNG</td>
+              <td>TỔNG CỘNG</td>
               <td>${total.toLocaleString()} VNĐ</td>
             </tr>
           </tbody>
@@ -425,6 +476,16 @@ const Invoices = () => {
       dataIndex: 'rented_room',
       key: 'room_name',
       render: (rentedRoom, record) => rentedRoom?.room?.name || roomsMap[contractsMap[record.rr_id]?.room_id]?.name || 'N/A',
+    },
+    {
+      title: 'Nhà trọ',
+      dataIndex: 'rented_room',
+      key: 'house_name',
+      render: (rentedRoom, record) => {
+        const room = rentedRoom?.room || roomsMap[contractsMap[record.rr_id]?.room_id] || {};
+        if (room?.house_id) return housesMap[room.house_id]?.name || 'N/A';
+        return 'N/A';
+      }
     },
     {
       title: 'Tổng tiền',
@@ -629,6 +690,7 @@ const Invoices = () => {
                   style={{ width: '100%' }}
                   placeholder="Số điện kỳ trước"
                   onChange={handlePreviousElectricityChange}
+                  disabled
                 />
               </Form.Item>
             </Col>
@@ -749,7 +811,17 @@ const Invoices = () => {
                   <div><strong>Khách thuê:</strong> {selectedInvoice.rented_room?.tenant_name || 'N/A'}</div>
                 </Col>
                 <Col span={12}>
-                  <div><strong>Phòng:</strong> {selectedInvoice.rented_room?.room?.name || 'N/A'}</div>
+                  <div><strong>Phòng:</strong> {selectedInvoice.rented_room?.room?.name || roomsMap[contractsMap[selectedInvoice.rr_id]?.room_id]?.name || 'N/A'}</div>
+                </Col>
+                <Col span={12}>
+                  <div><strong>Nhà trọ:</strong> {
+                    (() => {
+                      const room = selectedInvoice.rented_room?.room;
+                      if (room?.house_id) return housesMap[room.house_id]?.name || 'N/A';
+                      const fallbackRoom = roomsMap[contractsMap[selectedInvoice.rr_id]?.room_id] || {};
+                      return housesMap[fallbackRoom.house_id]?.name || 'N/A';
+                    })()
+                  }</div>
                 </Col>
                 <Col span={12}>
                   <div><strong>Ngày đến hạn:</strong> {new Date(selectedInvoice.due_date).toLocaleDateString('vi-VN')}</div>
@@ -767,46 +839,40 @@ const Invoices = () => {
                 <thead>
                   <tr style={{ borderBottom: '2px solid #f0f0f0' }}>
                     <th style={{ padding: '12px', textAlign: 'left' }}>Dịch vụ</th>
-                    <th style={{ padding: '12px', textAlign: 'right' }}>Số lượng</th>
                     <th style={{ padding: '12px', textAlign: 'right' }}>Đơn giá (VNĐ)</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr style={{ borderBottom: '1px solid #f0f0f0' }}>
                     <td style={{ padding: '12px' }}>Tiền thuê phòng</td>
-                    <td style={{ padding: '12px', textAlign: 'right' }}>1</td>
                     <td style={{ padding: '12px', textAlign: 'right' }}>{(selectedInvoice.price || 0).toLocaleString()}</td>
                   </tr>
                   {selectedInvoice.water_price > 0 && (
                     <tr style={{ borderBottom: '1px solid #f0f0f0' }}>
                       <td style={{ padding: '12px' }}>Tiền nước</td>
-                      <td style={{ padding: '12px', textAlign: 'right' }}>-</td>
                       <td style={{ padding: '12px', textAlign: 'right' }}>{(selectedInvoice.water_price || 0).toLocaleString()}</td>
                     </tr>
                   )}
                   {selectedInvoice.internet_price > 0 && (
                     <tr style={{ borderBottom: '1px solid #f0f0f0' }}>
                       <td style={{ padding: '12px' }}>Tiền internet</td>
-                      <td style={{ padding: '12px', textAlign: 'right' }}>-</td>
                       <td style={{ padding: '12px', textAlign: 'right' }}>{(selectedInvoice.internet_price || 0).toLocaleString()}</td>
                     </tr>
                   )}
                   {selectedInvoice.electricity_price > 0 && (
                     <tr style={{ borderBottom: '1px solid #f0f0f0' }}>
-                      <td style={{ padding: '12px' }}>Tiền điện</td>
-                      <td style={{ padding: '12px', textAlign: 'right' }}>{selectedInvoice.electricity_num || '-'} kWh</td>
+                      <td style={{ padding: '12px' }}>Tiền điện ({selectedInvoice.electricity_num || '-'} kWh)</td>
                       <td style={{ padding: '12px', textAlign: 'right' }}>{(selectedInvoice.electricity_price || 0).toLocaleString()}</td>
                     </tr>
                   )}
                   {selectedInvoice.general_price > 0 && (
                     <tr style={{ borderBottom: '1px solid #f0f0f0' }}>
                       <td style={{ padding: '12px' }}>Phí dịch vụ chung</td>
-                      <td style={{ padding: '12px', textAlign: 'right' }}>-</td>
                       <td style={{ padding: '12px', textAlign: 'right' }}>{(selectedInvoice.general_price || 0).toLocaleString()}</td>
                     </tr>
                   )}
                   <tr style={{ backgroundColor: '#f0f0f0', fontWeight: 'bold' }}>
-                    <td colSpan={2} style={{ padding: '12px' }}>TỔNG CỘNG</td>
+                    <td style={{ padding: '12px' }}>TỔNG CỘNG</td>
                     <td style={{ padding: '12px', textAlign: 'right', color: '#1890ff', fontSize: '16px' }}>
                       {calculateTotal(selectedInvoice).toLocaleString()} VNĐ
                     </td>

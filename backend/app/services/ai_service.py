@@ -58,26 +58,27 @@ class AIService:
     
     def _get_database_context(self, context: Dict) -> str:
         """
-        Lấy thông tin từ database để làm context cho AI
+        Lấy thông tin từ database để làm context cho AI, phạm vi theo chủ nhà (owner_id)
         """
         context_info = []
-        
+        owner_id = context.get('owner_id')
+
         try:
             db = next(get_db())
             
             # Lấy thống kê tổng quan
             if context.get('include_stats', False):
-                stats = self._get_system_stats(db)
-                context_info.append(f"Thống kê hệ thống: {stats}")
-            
+                stats = self._get_system_stats(db, owner_id)
+                context_info.append(f"Thống kê hệ thống (tài khoản bạn): {stats}")
+
             # Lấy thông tin phòng trống
             if context.get('include_available_rooms', False):
-                rooms = self._get_available_rooms(db)
+                rooms = self._get_available_rooms(db, owner_id)
                 context_info.append(f"Phòng trống hiện tại: {rooms}")
             
             # Lấy thông tin hóa đơn chưa thanh toán
             if context.get('include_pending_invoices', False):
-                invoices = self._get_pending_invoices(db)
+                invoices = self._get_pending_invoices(db, owner_id)
                 context_info.append(f"Hóa đơn chưa thanh toán: {invoices}")
             
             db.close()
@@ -87,45 +88,64 @@ class AIService:
         
         return "\n".join(context_info)
     
-    def _get_system_stats(self, db: Session) -> str:
+    def _get_system_stats(self, db: Session, owner_id: int) -> str:
         """
-        Lấy thống kê tổng quan của hệ thống
+        Lấy thống kê tổng quan của hệ thống theo chủ nhà
         """
         try:
-            # Tổng số nhà trọ
-            total_houses = db.execute(text("SELECT COUNT(*) FROM houses")).scalar()
-            
-            # Tổng số phòng
-            total_rooms = db.execute(text("SELECT COUNT(*) FROM rooms")).scalar()
-            
-            # Số phòng đang thuê
-            occupied_rooms = db.execute(text("SELECT COUNT(*) FROM rooms WHERE is_available = FALSE")).scalar()
-            
+            # Tổng số nhà trọ của owner
+            total_houses = db.execute(text(
+                "SELECT COUNT(*) FROM houses WHERE owner_id = :owner_id"
+            ), { 'owner_id': owner_id }).scalar()
+
+            # Tổng số phòng thuộc các nhà của owner
+            total_rooms = db.execute(text(
+                """
+                SELECT COUNT(*) 
+                FROM rooms r 
+                JOIN houses h ON r.house_id = h.house_id 
+                WHERE h.owner_id = :owner_id
+                """
+            ), { 'owner_id': owner_id }).scalar()
+
+            # Số phòng đang thuê (không còn available)
+            occupied_rooms = db.execute(text(
+                """
+                SELECT COUNT(*) 
+                FROM rooms r 
+                JOIN houses h ON r.house_id = h.house_id 
+                WHERE h.owner_id = :owner_id AND r.is_available = FALSE
+                """
+            ), { 'owner_id': owner_id }).scalar()
+
             # Số phòng trống
-            available_rooms = total_rooms - occupied_rooms
-            
+            available_rooms = (total_rooms or 0) - (occupied_rooms or 0)
+
             # Tỷ lệ lấp đầy
-            occupancy_rate = (occupied_rooms / total_rooms * 100) if total_rooms > 0 else 0
-            
+            occupancy_rate = ((occupied_rooms or 0) / (total_rooms or 1) * 100) if (total_rooms or 0) > 0 else 0
+
             return f"Tổng {total_houses} nhà trọ, {total_rooms} phòng ({occupied_rooms} đang thuê, {available_rooms} trống). Tỷ lệ lấp đầy: {occupancy_rate:.1f}%"
             
         except Exception as e:
             return f"Không thể lấy thống kê: {str(e)}"
     
-    def _get_available_rooms(self, db: Session) -> str:
+    def _get_available_rooms(self, db: Session, owner_id: int) -> str:
         """
-        Lấy thông tin phòng trống
+        Lấy thông tin phòng trống theo chủ nhà
         """
         try:
-            rooms = db.execute(text("""
+            rooms = db.execute(text(
+                """
                 SELECT r.name, r.price, h.name as house_name 
                 FROM rooms r 
                 JOIN houses h ON r.house_id = h.house_id 
                 WHERE r.is_available = TRUE 
+                AND h.owner_id = :owner_id
                 ORDER BY r.price 
                 LIMIT 5
-            """)).fetchall()
-            
+                """
+            ), { 'owner_id': owner_id }).fetchall()
+
             if not rooms:
                 return "Hiện tại không có phòng trống nào."
             
@@ -138,22 +158,32 @@ class AIService:
         except Exception as e:
             return f"Không thể lấy thông tin phòng trống: {str(e)}"
     
-    def _get_pending_invoices(self, db: Session) -> str:
+    def _get_pending_invoices(self, db: Session, owner_id: int) -> str:
         """
-        Lấy thông tin hóa đơn chưa thanh toán
+        Lấy thông tin hóa đơn chưa thanh toán theo chủ nhà
         """
         try:
-            invoices = db.execute(text("""
-                SELECT COUNT(*) as count, SUM(price + water_price + internet_price + general_price + electricity_price) as total
-                FROM invoices 
-                WHERE is_paid = FALSE
-            """)).fetchone()
-            
-            if invoices.count == 0:
+            invoices = db.execute(text(
+                """
+                SELECT COUNT(*) as count, 
+                       SUM(i.price + i.water_price + i.internet_price + i.general_price + i.electricity_price) as total
+                FROM invoices i
+                JOIN rented_rooms rr ON i.rr_id = rr.rr_id
+                JOIN rooms r ON rr.room_id = r.room_id
+                JOIN houses h ON r.house_id = h.house_id
+                WHERE i.is_paid = FALSE
+                  AND h.owner_id = :owner_id
+                """
+            ), { 'owner_id': owner_id }).fetchone()
+
+            count = invoices.count or 0
+            total = invoices.total or 0
+
+            if count == 0:
                 return "Không có hóa đơn chưa thanh toán nào."
             
-            return f"Có {invoices.count} hóa đơn chưa thanh toán, tổng tiền: {invoices.total:,.0f} VNĐ"
-            
+            return f"Có {count} hóa đơn chưa thanh toán, tổng tiền: {total:,.0f} VNĐ"
+
         except Exception as e:
             return f"Không thể lấy thông tin hóa đơn: {str(e)}"
     
@@ -165,9 +195,11 @@ class AIService:
             db = next(get_db())
             
             # Gọi stored procedure để tìm phòng phù hợp
-            result = db.execute(text("""
+            result = db.execute(text(
+                """
                 CALL FindAvailableRooms(:min_price, :max_price, :min_capacity, :max_capacity, :district)
-            """), {
+                """
+            ), {
                 'min_price': budget * 0.8,  # 80% ngân sách
                 'max_price': budget * 1.2,  # 120% ngân sách
                 'min_capacity': capacity,
@@ -193,46 +225,95 @@ class AIService:
         except Exception as e:
             return f"Không thể tìm phòng phù hợp: {str(e)}"
     
-    def generate_revenue_report(self, start_date: str, end_date: str) -> str:
+    def generate_revenue_report(self, start_date: str, end_date: str, owner_id: int) -> str:
         """
-        Tạo báo cáo doanh thu bằng AI
+        Tạo báo cáo doanh thu bằng AI (phạm vi theo chủ nhà đăng nhập)
         """
         try:
             db = next(get_db())
-            
-            # Gọi stored procedure để lấy thống kê doanh thu
-            result = db.execute(text("""
-                CALL GetRevenueStats(:start_date, :end_date, @total_revenue, @paid_invoices, @pending_invoices, @avg_monthly_revenue)
-            """), {
-                'start_date': start_date,
-                'end_date': end_date
-            })
-            
-            # Lấy kết quả từ output variables
-            stats = db.execute(text("""
-                SELECT @total_revenue as total_revenue, 
-                       @paid_invoices as paid_invoices, 
-                       @pending_invoices as pending_invoices, 
-                       @avg_monthly_revenue as avg_monthly_revenue
-            """)).fetchone()
-            
+
+            # Tổng doanh thu (đã thanh toán) trong khoảng thời gian, theo owner
+            total_revenue_row = db.execute(text(
+                """
+                SELECT COALESCE(SUM(i.price + i.water_price + i.internet_price + i.general_price + i.electricity_price), 0) as total
+                FROM invoices i
+                JOIN rented_rooms rr ON i.rr_id = rr.rr_id
+                JOIN rooms r ON rr.room_id = r.room_id
+                JOIN houses h ON r.house_id = h.house_id
+                WHERE i.is_paid = TRUE 
+                  AND i.payment_date BETWEEN :start_date AND :end_date
+                  AND h.owner_id = :owner_id
+                """
+            ), { 'start_date': start_date, 'end_date': end_date, 'owner_id': owner_id }).fetchone()
+            total_revenue = float(total_revenue_row.total or 0)
+
+            # Số hóa đơn đã thanh toán trong khoảng thời gian, theo owner
+            paid_invoices_row = db.execute(text(
+                """
+                SELECT COUNT(*) as cnt
+                FROM invoices i
+                JOIN rented_rooms rr ON i.rr_id = rr.rr_id
+                JOIN rooms r ON rr.room_id = r.room_id
+                JOIN houses h ON r.house_id = h.house_id
+                WHERE i.is_paid = TRUE 
+                  AND i.payment_date BETWEEN :start_date AND :end_date
+                  AND h.owner_id = :owner_id
+                """
+            ), { 'start_date': start_date, 'end_date': end_date, 'owner_id': owner_id }).fetchone()
+            paid_invoices = int(paid_invoices_row.cnt or 0)
+
+            # Số hóa đơn chưa thanh toán theo due_date trong khoảng thời gian, theo owner
+            pending_invoices_row = db.execute(text(
+                """
+                SELECT COUNT(*) as cnt
+                FROM invoices i
+                JOIN rented_rooms rr ON i.rr_id = rr.rr_id
+                JOIN rooms r ON rr.room_id = r.room_id
+                JOIN houses h ON r.house_id = h.house_id
+                WHERE i.is_paid = FALSE 
+                  AND i.due_date BETWEEN :start_date AND :end_date
+                  AND h.owner_id = :owner_id
+                """
+            ), { 'start_date': start_date, 'end_date': end_date, 'owner_id': owner_id }).fetchone()
+            pending_invoices = int(pending_invoices_row.cnt or 0)
+
+            # Doanh thu trung bình theo tháng (trong khoảng thời gian), theo owner
+            avg_month_row = db.execute(text(
+                """
+                SELECT COALESCE(AVG(monthly_revenue), 0) as avg_rev
+                FROM (
+                    SELECT DATE_FORMAT(i.payment_date, '%Y-%m') as month,
+                           SUM(i.price + i.water_price + i.internet_price + i.general_price + i.electricity_price) as monthly_revenue
+                    FROM invoices i
+                    JOIN rented_rooms rr ON i.rr_id = rr.rr_id
+                    JOIN rooms r ON rr.room_id = r.room_id
+                    JOIN houses h ON r.house_id = h.house_id
+                    WHERE i.is_paid = TRUE 
+                      AND i.payment_date BETWEEN :start_date AND :end_date
+                      AND h.owner_id = :owner_id
+                    GROUP BY DATE_FORMAT(i.payment_date, '%Y-%m')
+                ) t
+                """
+            ), { 'start_date': start_date, 'end_date': end_date, 'owner_id': owner_id }).fetchone()
+            avg_monthly_revenue = float(avg_month_row.avg_rev or 0)
+
             db.close()
             
-            # Tạo báo cáo có cấu trúc với số liệu rõ ràng
-            total_invoices = stats.paid_invoices + stats.pending_invoices
-            payment_rate = (stats.paid_invoices / total_invoices * 100) if total_invoices > 0 else 0
-            
+            # Tính bổ sung
+            total_invoices = paid_invoices + pending_invoices
+            payment_rate = (paid_invoices / total_invoices * 100) if total_invoices > 0 else 0
+
             # Tạo prompt yêu cầu format cụ thể
             prompt = f"""
-            Bạn là chuyên gia phân tích doanh thu. Hãy tạo báo cáo phân tích ngắn gọn, có cấu trúc với dữ liệu sau:
+            Bạn là chuyên gia phân tích doanh thu. Hãy tạo báo cáo phân tích ngắn gọn, có cấu trúc với dữ liệu sau (phạm vi tài khoản hiện tại):
             
             DOANH THU: {start_date} đến {end_date}
-            - Tổng doanh thu: {stats.total_revenue:,.0f} VNĐ
-            - Hóa đơn đã thanh toán: {stats.paid_invoices}
-            - Hóa đơn chưa thanh toán: {stats.pending_invoices}
+            - Tổng doanh thu: {total_revenue:,.0f} VNĐ
+            - Hóa đơn đã thanh toán: {paid_invoices}
+            - Hóa đơn chưa thanh toán: {pending_invoices}
             - Tổng số hóa đơn: {total_invoices}
             - Tỷ lệ thanh toán: {payment_rate:.1f}%
-            - Doanh thu TB/tháng: {stats.avg_monthly_revenue:,.0f} VNĐ
+            - Doanh thu TB/tháng: {avg_monthly_revenue:,.0f} VNĐ
             
             YÊU CẦU FORMAT:
             1. Bắt đầu với "## 📊 PHÂN TÍCH DOANH THU"
@@ -248,10 +329,10 @@ class AIService:
             - Tập trung vào insights quan trọng
             - Sử dụng emoji phù hợp cho mỗi phần
             """
-            
+
             response = self.model.generate_content(prompt)
             return response.text
-            
+
         except Exception as e:
             return f"Không thể tạo báo cáo doanh thu: {str(e)}"
 
