@@ -91,6 +91,14 @@ const Dashboard = () => {
     },
   ];
 
+  const calcTotal = (inv) => (
+    Number(inv?.price || 0) +
+    Number(inv?.water_price || 0) +
+    Number(inv?.internet_price || 0) +
+    Number(inv?.general_price || 0) +
+    Number(inv?.electricity_price || 0)
+  );
+
   const invoiceColumns = [
     {
       title: 'Mã hóa đơn',
@@ -101,7 +109,7 @@ const Dashboard = () => {
       title: 'Tổng tiền',
       dataIndex: 'price',
       key: 'price',
-      render: (price) => `${price.toLocaleString()} VNĐ`,
+      render: (_, record) => `${calcTotal(record).toLocaleString()} VNĐ`,
     },
     {
       title: 'Ngày đến hạn',

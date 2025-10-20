@@ -32,8 +32,8 @@ export const roomService = {
     return response.data;
   },
 
-  delete: async (id) => {
-    const response = await api.delete(`/rooms/${id}`);
+  delete: async (id, config) => {
+    const response = await api.delete(`/rooms/${id}`, config);
     return response.data;
   }
 };

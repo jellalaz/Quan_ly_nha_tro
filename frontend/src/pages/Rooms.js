@@ -1,24 +1,24 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
-  Card, 
-  Table, 
-  Button, 
-  Modal, 
-  Form, 
-  Input, 
-  InputNumber, 
+  Card,
+  Table,
+  Button,
+  Modal,
+  Form,
+  Input,
+  InputNumber,
   Select,
-  message,
+  App, // Import App
   Space,
   Popconfirm,
   Tag,
   Row,
   Col
 } from 'antd';
-import { 
-  PlusOutlined, 
-  EditOutlined, 
-  DeleteOutlined, 
+import {
+  PlusOutlined,
+  EditOutlined,
+  DeleteOutlined,
   EyeOutlined,
   HomeOutlined
 } from '@ant-design/icons';
@@ -31,17 +31,24 @@ const { TextArea } = Input;
 const { Option } = Select;
 
 const Rooms = () => {
+  const { message } = App.useApp(); // Use hook to get message
   const [rooms, setRooms] = useState([]);
   const [houses, setHouses] = useState([]);
   const [assets, setAssets] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [pageSize, setPageSize] = useState(10);
-
   const [modalVisible, setModalVisible] = useState(false);
   const [assetModalVisible, setAssetModalVisible] = useState(false);
   const [editingRoom, setEditingRoom] = useState(null);
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [searchParams, setSearchParams] = useSearchParams();
+  const [pagination, setPagination] = useState({
+    current: 1,
+    pageSize: 5,
+    showSizeChanger: true,
+    pageSizeOptions: ['5', '10', '20', '50'],
+    showQuickJumper: true,
+    showTotal: (total) => `Tổng cộng ${total} phòng`,
+  });
   const [form] = Form.useForm();
   const [assetForm] = Form.useForm();
   const navigate = useNavigate();
@@ -99,6 +106,10 @@ const Rooms = () => {
     }
   };
 
+  const handleTableChange = (pagination) => {
+    setPagination(pagination);
+  };
+
   const handleCreate = () => {
     setEditingRoom(null);
     form.resetFields();
@@ -116,7 +127,7 @@ const Rooms = () => {
 
   const handleDelete = async (id) => {
     try {
-      await roomService.delete(id);
+      await roomService.delete(id, { message });
       message.success('Xóa phòng thành công!');
       if (houseId) {
         fetchRooms(houseId);
@@ -124,7 +135,8 @@ const Rooms = () => {
         fetchAllRooms();
       }
     } catch (error) {
-      message.error('Lỗi khi xóa phòng!');
+      // Error message is handled by the service/interceptor now
+      console.error('Delete room error:', error);
     }
   };
 
@@ -226,21 +238,21 @@ const Rooms = () => {
       render: (_, record) => (
         <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 8 }}>
           <Button
-            type="link" 
+            type="link"
             icon={<HomeOutlined />}
             onClick={() => handleViewAssets(record)}
           >
             Tài sản
           </Button>
-          <Button 
-            type="link" 
+          <Button
+            type="link"
             icon={<EyeOutlined />}
             onClick={() => navigate(`/contracts?room=${record.room_id}`)}
           >
             Hợp đồng
           </Button>
-          <Button 
-            type="link" 
+          <Button
+            type="link"
             icon={<EditOutlined />}
             onClick={() => handleEdit(record)}
           >
@@ -298,15 +310,8 @@ const Rooms = () => {
           dataSource={rooms}
           rowKey="room_id"
           loading={loading}
-          pagination={{
-            pageSize: pageSize,
-            showSizeChanger: true,
-            pageSizeOptions: ['10', '20', '50', '100'],
-            onShowSizeChange: (current, size) => setPageSize(size),
-            showQuickJumper: true,
-            showTotal: (total) => `Tổng cộng ${total} phòng`,
-          }}
-
+          pagination={pagination}
+          onChange={handleTableChange}
         />
       </Card>
 
@@ -337,9 +342,9 @@ const Rooms = () => {
                 label="Sức chứa"
                 rules={[{ required: true, message: 'Vui lòng nhập sức chứa!' }]}
               >
-                <InputNumber 
-                  min={1} 
-                  max={10} 
+                <InputNumber
+                  min={1}
+                  max={10}
                   style={{ width: '100%' }}
                   placeholder="Số người"
                 />
@@ -351,8 +356,8 @@ const Rooms = () => {
                 label="Giá thuê (VNĐ)"
                 rules={[{ required: true, message: 'Vui lòng nhập giá thuê!' }]}
               >
-                <InputNumber 
-                  min={0} 
+                <InputNumber
+                  min={0}
                   style={{ width: '100%' }}
                   placeholder="Giá thuê"
                   formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
@@ -379,8 +384,8 @@ const Rooms = () => {
             name="description"
             label="Mô tả"
           >
-            <TextArea 
-              rows={3} 
+            <TextArea
+              rows={3}
               placeholder="Mô tả phòng trọ"
             />
           </Form.Item>

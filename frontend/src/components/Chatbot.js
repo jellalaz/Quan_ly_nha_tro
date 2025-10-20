@@ -172,7 +172,9 @@ const Chatbot = () => {
                           );
                         }
                         // Check if line is a bullet point
-                        else if (line.trim().startsWith('-') || line.trim().startsWith('*') || line.trim().startsWith('•')) {
+                        else if (line.trim().startsWith('-') || line.trim().startsWith('*') || line.trim().startsWith('\u2022')) {
+                          const content = line.replace(/^[-*\u2022]\s*/, '');
+                          const parts = content.split(/\*\*|__/);
                           return (
                             <div key={idx} style={{ 
                               marginLeft: '12px',
@@ -181,7 +183,7 @@ const Chatbot = () => {
                               alignItems: 'flex-start'
                             }}>
                               <span style={{ color: '#52c41a', marginRight: '6px', fontWeight: 'bold' }}>•</span>
-                              <span>{line.replace(/^[-*•]\s*/, '')}</span>
+                              <span>{parts.map((part, i) => i % 2 === 1 ? <strong key={i} style={{ color: '#1890ff' }}>{part}</strong> : part)}</span>
                             </div>
                           );
                         }

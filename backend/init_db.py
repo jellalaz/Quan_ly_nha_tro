@@ -4,20 +4,22 @@ from app.models import user, house, room, asset, rented_room, invoice
 from app.core.security import get_password_hash
 from datetime import datetime, timedelta
 
-# Create all tables
+# Tạo toàn bộ bảng theo model, dữ liệu trắng
 user.Base.metadata.create_all(bind=engine)
 
+
+#Chèn dữ liệu mẫu ban đầu
 
 def init_db():
     db = SessionLocal()
 
     try:
-        # Create only owner role
+        # Tạo role owner
         owner_role = user.Role(authority="owner")
         db.add(owner_role)
         db.commit()
 
-        # Create owner user
+        # Tạo user owner
         owner_user = user.User(
             fullname="House Owner",
             phone="0987654321",
@@ -28,7 +30,7 @@ def init_db():
         db.add(owner_user)
         db.commit()
 
-        # Create sample house
+        # Tạo sample house
         sample_house = house.House(
             name="Nhà trọ ABC",
             floor_count=3,
@@ -103,11 +105,12 @@ def init_db():
 
         # Create sample invoice
         invoice_obj = invoice.Invoice(
-            price=3500000,
-            water_price=100000,
-            internet_price=200000,
-            general_price=50000,
-            electricity_price=150000,
+            price=3500000,  # Giá thuê
+            #Dịch vụ
+            water_price=100000, # Giá nước
+            internet_price=200000, # Giá internet
+            general_price=50000, # Giá dịch vụ chung
+            electricity_price=150000, # Giá điện
             electricity_num=150,
             water_num=10,
             due_date=datetime.now() + timedelta(days=30),
@@ -128,3 +131,4 @@ def init_db():
 
 if __name__ == "__main__":
     init_db()
+

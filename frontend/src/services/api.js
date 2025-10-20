@@ -30,10 +30,26 @@ api.interceptors.response.use(
     return response;
   },
   (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('access_token');
-      window.location.href = '/login';
+    const message = error?.config?.message;
+
+    if (message) {
+      const detail = error?.response?.data?.detail || error?.response?.data?.message || 'Đã có lỗi xảy ra!';
+      message.error(detail);
+    } else {
+      console.log('API Error Interceptor:', error);
+      console.log('Error response:', error?.response);
+      console.log('Error data:', error?.response?.data);
+
+      const status = error?.response?.status;
+      console.log('Status:', status);
+
+      // Only handle 401 for logout
+      if (status === 401) {
+        localStorage.removeItem('access_token');
+        window.location.href = '/login';
+      }
     }
+
     return Promise.reject(error);
   }
 );

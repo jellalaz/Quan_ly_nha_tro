@@ -7,6 +7,8 @@ from app.schemas.room import Room, RoomCreate, RoomUpdate
 from app.crud import room as room_crud
 from app.core.security import get_current_active_user
 from app.schemas.user import User
+from app.models.rented_room import RentedRoom
+from sqlalchemy import true, false
 
 router = APIRouter()
 
@@ -53,7 +55,24 @@ def update_room(
 
 @router.delete("/{room_id}")
 def delete_room(room_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_active_user)):
-    db_room = room_crud.delete_room(db, room_id=room_id, owner_id=current_user.owner_id)
+    # Load room to ensure ownership and state
+    db_room = room_crud.get_room_by_id(db, room_id=room_id, owner_id=current_user.owner_id)
     if db_room is None:
         raise HTTPException(status_code=404, detail="Room not found")
+
+    # Business rule: cannot delete if the room is currently rented
+    if db_room.is_available is False:
+        raise HTTPException(status_code=400, detail="Phòng đang có hợp đồng với người thuê, không được xóa !")
+
+    # Double-check via active rental records just in case
+    active_contract = (
+        db.query(RentedRoom)
+        .filter(RentedRoom.room_id == room_id, RentedRoom.is_active.is_(True))
+        .first()
+    )
+    if active_contract:
+        raise HTTPException(status_code=400, detail="Phòng đang có hợp đồng với người thuê, không được xóa !")
+
+    # Safe to delete
+    room_crud.delete_room(db, room_id=room_id, owner_id=current_user.owner_id)
     return {"message": "Room deleted successfully"}
