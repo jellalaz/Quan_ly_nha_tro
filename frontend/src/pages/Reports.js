@@ -21,7 +21,6 @@ import { reportsService } from '../services/reportsService';
 import { aiService } from '../services/aiService';
 import dayjs from 'dayjs';
 
-const { RangePicker } = DatePicker;
 const { Title } = Typography;
 
 const Reports = () => {
@@ -30,11 +29,9 @@ const Reports = () => {
   const [aiReport, setAiReport] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
 
-  // Date range for reports
-  const [dateRange, setDateRange] = useState([
-    dayjs().subtract(30, 'days'),
-    dayjs()
-  ]);
+  // Separate start and end dates instead of date range
+  const [startDate, setStartDate] = useState(dayjs().subtract(30, 'days'));
+  const [endDate, setEndDate] = useState(dayjs());
 
   useEffect(() => {
     fetchSystemOverview();
@@ -53,8 +50,8 @@ const Reports = () => {
 
   const fetchRevenueStats = async () => {
     try {
-      const start = dateRange?.[0]?.format('YYYY-MM-DD');
-      const end = dateRange?.[1]?.format('YYYY-MM-DD');
+      const start = startDate?.format('YYYY-MM-DD');
+      const end = endDate?.format('YYYY-MM-DD');
       if (!start || !end) return;
       const data = await reportsService.getRevenueStats(start, end);
       setRevenueStats(data);
@@ -66,8 +63,8 @@ const Reports = () => {
   const generateAIReport = async () => {
     try {
       setAiLoading(true);
-      const start = dateRange?.[0]?.format('YYYY-MM-DD');
-      const end = dateRange?.[1]?.format('YYYY-MM-DD');
+      const start = startDate?.format('YYYY-MM-DD');
+      const end = endDate?.format('YYYY-MM-DD');
       if (!start || !end) {
         message.warning('Vui lòng chọn khoảng thời gian hợp lệ.');
         return;
@@ -136,10 +133,17 @@ const Reports = () => {
         <Col span={12}>
           <Card title="Thống kê doanh thu" extra={
             <Space>
-              <RangePicker
-                value={dateRange}
-                onChange={setDateRange}
+              <DatePicker
+                value={startDate}
+                onChange={setStartDate}
                 format="DD/MM/YYYY"
+                placeholder="Ngày bắt đầu"
+              />
+              <DatePicker
+                value={endDate}
+                onChange={setEndDate}
+                format="DD/MM/YYYY"
+                placeholder="Ngày kết thúc"
               />
               <Button onClick={fetchRevenueStats}>Cập nhật</Button>
             </Space>
@@ -263,3 +267,4 @@ const Reports = () => {
 };
 
 export default Reports;
+

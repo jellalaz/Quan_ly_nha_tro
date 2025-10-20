@@ -341,107 +341,115 @@ const Contracts = () => {
       <Card
         title={`Quản lý hợp đồng thuê${roomId ? ` - ${rooms.find(r => r.room_id === parseInt(roomId))?.name}` : ''}`}
         extra={
-          <Space>
-            <Select
-              placeholder="Chọn nhà trọ"
-              style={{ width: 200 }}
-              allowClear
-              onChange={(value) => {
-                if (value) {
-                  fetchRooms(value);
-                  handleFilterChange({ houseId: value });
-                } else {
-                  setRooms([]);
-                  handleFilterChange({ houseId: null });
-                }
-              }}
-            >
-              {houses.map(house => (
-                <Option key={house.house_id} value={house.house_id}>
-                  {house.name}
-                </Option>
-              ))}
-            </Select>
-            <Select
-              placeholder="Chọn phòng"
-              style={{ width: 200 }}
-              allowClear
-              disabled={!rooms.length}
-              onChange={(value) => {
-                if (value) {
-                  setSearchParams({ room: value });
-                  handleFilterChange({ roomId: value });
-                } else {
-                  setSearchParams({});
-                  handleFilterChange({ roomId: null });
-                }
-              }}
-            >
-              {rooms.map(room => (
-                <Option key={room.room_id} value={room.room_id}>
-                  {room.name}
-                </Option>
-              ))}
-            </Select>
-            <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
-              Tạo hợp đồng mới
-            </Button>
-          </Space>
+          <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
+            Tạo hợp đồng mới
+          </Button>
         }
       >
-        <Form layout="inline" style={{ marginBottom: 16 }}>
-          <Form.Item label="Tên khách thuê">
-            <Input
-              placeholder="Nhập tên khách thuê"
-              value={filters.tenantName}
-              onChange={(e) => handleFilterChange({ tenantName: e.target.value })}
-            />
-          </Form.Item>
-          <Form.Item label="Ngày bắt đầu">
-            <DatePicker
-              style={{ width: 200 }}
-              value={filters.startDate}
-              onChange={(date) => handleFilterChange({ startDate: date })}
-            />
-          </Form.Item>
-          <Form.Item label="Ngày kết thúc">
-            <DatePicker
-              style={{ width: 200 }}
-              value={filters.endDate}
-              onChange={(date) => handleFilterChange({ endDate: date })}
-            />
-          </Form.Item>
-          <Form.Item label="Trạng thái">
-            <Select
-              placeholder="Chọn trạng thái"
-              style={{ width: 200 }}
-              allowClear
-              value={filters.status}
-              onChange={(value) => handleFilterChange({ status: value })}
-            >
-              <Option value="active">Đang thuê</Option>
-              <Option value="inactive">Đã kết thúc</Option>
-            </Select>
-          </Form.Item>
-          <Form.Item>
-            <Button
-              type="primary"
-              onClick={() => {
-                setFilters({
-                  houseId: null,
-                  roomId: null,
-                  status: null,
-                  tenantName: '',
-                  startDate: null,
-                  endDate: null,
-                });
-                setSearchParams({});
-              }}
-            >
-              Xóa bộ lọc
-            </Button>
-          </Form.Item>
-        </Form>
+        <div style={{ marginBottom: 16 }}>
+          <Row gutter={[8, 8]}>
+            <Col span={4}>
+              <Select
+                placeholder="Chọn nhà trọ"
+                style={{ width: '100%' }}
+                allowClear
+                onChange={(value) => {
+                  if (value) {
+                    fetchRooms(value);
+                    handleFilterChange({ houseId: value });
+                  } else {
+                    setRooms([]);
+                    handleFilterChange({ houseId: null });
+                  }
+                }}
+              >
+                {houses.map(house => (
+                  <Option key={house.house_id} value={house.house_id}>
+                    {house.name}
+                  </Option>
+                ))}
+              </Select>
+            </Col>
+            <Col span={4}>
+              <Select
+                placeholder="Chọn phòng"
+                style={{ width: '100%' }}
+                allowClear
+                disabled={!rooms.length}
+                onChange={(value) => {
+                  if (value) {
+                    setSearchParams({ room: value });
+                    handleFilterChange({ roomId: value });
+                  } else {
+                    setSearchParams({});
+                    handleFilterChange({ roomId: null });
+                  }
+                }}
+              >
+                {rooms.map(room => (
+                  <Option key={room.room_id} value={room.room_id}>
+                    {room.name}
+                  </Option>
+                ))}
+              </Select>
+            </Col>
+            <Col span={4}>
+              <Input
+                placeholder="Tên khách thuê"
+                value={filters.tenantName}
+                onChange={(e) => handleFilterChange({ tenantName: e.target.value })}
+              />
+            </Col>
+            <Col span={4}>
+              <Select
+                placeholder="Trạng thái"
+                style={{ width: '100%' }}
+                allowClear
+                value={filters.status}
+                onChange={(value) => handleFilterChange({ status: value })}
+              >
+                <Option value="active">Đang thuê</Option>
+                <Option value="inactive">Đã kết thúc</Option>
+              </Select>
+            </Col>
+            <Col span={4}>
+              <DatePicker
+                placeholder="Ngày bắt đầu"
+                style={{ width: '100%' }}
+                value={filters.startDate}
+                onChange={(date) => handleFilterChange({ startDate: date })}
+              />
+            </Col>
+            <Col span={4}>
+              <DatePicker
+                placeholder="Ngày kết thúc"
+                style={{ width: '100%' }}
+                value={filters.endDate}
+                onChange={(date) => handleFilterChange({ endDate: date })}
+              />
+            </Col>
+          </Row>
+          <Row style={{ marginTop: 8 }}>
+            <Col span={24}>
+              <Button
+                type="primary"
+                onClick={() => {
+                  setFilters({
+                    houseId: null,
+                    roomId: null,
+                    status: null,
+                    tenantName: '',
+                    startDate: null,
+                    endDate: null,
+                  });
+                  setSearchParams({});
+                }}
+              >
+                Xóa bộ lọc
+              </Button>
+            </Col>
+          </Row>
+        </div>
 
         <Table
           columns={columns}
@@ -655,7 +663,7 @@ const Contracts = () => {
             name="contract_url"
             label="Link hợp đồng"
           >
-            <Input placeholder="Nhập link hợp đồng (nếu có)" />
+            <Input placeholder="Nh���p link hợp đồng (nếu có)" />
           </Form.Item>
 
           <Form.Item style={{ marginBottom: 0, textAlign: 'right' }}>

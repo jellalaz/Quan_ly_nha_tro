@@ -618,29 +618,9 @@ const Invoices = () => {
       <Card
         title={`Quản lý hóa đơn${contractId ? ` - ${contracts.find(c => c.rr_id === Number(contractId))?.tenant_name}` : ''}`}
         extra={
-          <Space>
-            <Select
-              placeholder="Chọn hợp đồng"
-              style={{ width: 250 }}
-              allowClear
-              onChange={(value) => {
-                if (value) {
-                  setSearchParams({ contract: value });
-                } else {
-                  setSearchParams({});
-                }
-              }}
-            >
-              {contracts.map(contract => (
-                <Option key={contract.rr_id} value={contract.rr_id}>
-                  {contract.tenant_name} - {contract.room?.name || roomsMap[contract.room_id]?.name || 'N/A'}
-                </Option>
-              ))}
-            </Select>
-            <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
-              Tạo hóa đơn mới
-            </Button>
-          </Space>
+          <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
+            Tạo hóa đơn mới
+          </Button>
         }
       >
         <div style={{ marginBottom: 16 }}>
