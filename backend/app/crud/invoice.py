@@ -97,3 +97,11 @@ def mark_invoice_paid(db: Session, invoice_id: int, owner_id: int):
         db.commit()
         db.refresh(db_invoice)
     return db_invoice
+
+def delete_invoice(db: Session, invoice_id: int, owner_id: int):
+    db_invoice = get_invoice_by_id(db, invoice_id, owner_id)
+    if db_invoice:
+        db.delete(db_invoice)
+        db.commit()
+        return True
+    return False

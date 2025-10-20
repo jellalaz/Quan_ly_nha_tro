@@ -21,7 +21,8 @@ import {
   EditOutlined, 
   CheckOutlined,
   FilePdfOutlined,
-  EyeOutlined
+  EyeOutlined,
+  DeleteOutlined
 } from '@ant-design/icons';
 import { useSearchParams } from 'react-router-dom';
 import { invoiceService } from '../services/invoiceService';
@@ -303,7 +304,7 @@ const Invoices = () => {
         current_electricity_num: currentNum,
       });
     } else if (currentNum < previousElectricityNum) {
-      message.warning('Số điện hiện tại phải lớn hơn hoặc bằng số điện kỳ trước!');
+      message.warning('Số điện hiện tại ph��i lớn hơn hoặc bằng số điện kỳ trước!');
     }
   };
 
@@ -515,6 +516,20 @@ const Invoices = () => {
     }, 250);
   };
 
+  const handleDelete = async (id) => {
+    try {
+      await invoiceService.delete(id);
+      message.success('Xóa hóa đơn thành công!');
+      if (contractId) {
+        fetchInvoicesByContract(contractId);
+      } else {
+        fetchAllInvoices();
+      }
+    } catch (error) {
+      message.error('Lỗi khi xóa hóa đơn!');
+    }
+  };
+
   const columns = [
     {
       title: 'Mã hóa đơn',
@@ -608,6 +623,16 @@ const Invoices = () => {
               </Button>
             </Popconfirm>
           )}
+          <Popconfirm
+            title="Xác nhận xóa hóa đơn này?"
+            onConfirm={() => handleDelete(record.invoice_id)}
+            okText="Có"
+            cancelText="Không"
+          >
+            <Button type="link" icon={<DeleteOutlined />} danger>
+              Xóa
+            </Button>
+          </Popconfirm>
         </div>
       ),
     },

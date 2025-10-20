@@ -34,5 +34,10 @@ export const invoiceService = {
   pay: async (id) => {
     const response = await api.post(`/invoices/${id}/pay`);
     return response.data;
+  },
+
+  delete: async (id) => {
+    const response = await api.delete(`/invoices/${id}`);
+    return response.data;
   }
 };

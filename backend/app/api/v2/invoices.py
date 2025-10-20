@@ -58,3 +58,10 @@ def pay_invoice(invoice_id: int, db: Session = Depends(get_db), current_user: Us
     if db_invoice is None:
         raise HTTPException(status_code=404, detail="Invoice not found")
     return {"message": "Invoice paid successfully"}
+
+@router.delete("/{invoice_id}")
+def delete_invoice(invoice_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_active_user)):
+    success = invoice_crud.delete_invoice(db, invoice_id=invoice_id, owner_id=current_user.owner_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+    return {"message": "Invoice deleted successfully"}
