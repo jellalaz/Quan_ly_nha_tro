@@ -17,4 +17,4 @@ class House(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
     owner = relationship("User", back_populates="houses")
-    rooms = relationship("Room", back_populates="house")
+    rooms = relationship("Room", back_populates="house", cascade="all, delete-orphan")

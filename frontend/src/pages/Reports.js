@@ -216,7 +216,9 @@ const Reports = () => {
                       </h3>
                     );
                   }
-                  else if (line.trim().startsWith('-') || line.trim().startsWith('*') || line.trim().startsWith('•')) {
+                  else if (line.trim().startsWith('-') || line.trim().startsWith('*') || line.trim().startsWith('\u2022')) {
+                    const content = line.replace(/^[-*\u2022]\s*/, '');
+                    const parts = content.split(/\*\*|__/);
                     return (
                       <div key={index} style={{
                         marginLeft: '16px',
@@ -225,7 +227,7 @@ const Reports = () => {
                         alignItems: 'flex-start'
                       }}>
                         <span style={{ color: '#1890ff', marginRight: '8px', fontWeight: 'bold' }}>•</span>
-                        <span>{line.replace(/^[-*•]\s*/, '')}</span>
+                        <span>{parts.map((part, i) => i % 2 === 1 ? <strong key={i} style={{ color: '#1890ff' }}>{part}</strong> : part)}</span>
                       </div>
                     );
                   }

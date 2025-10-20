@@ -26,4 +26,4 @@ class RentedRoom(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
     room = relationship("Room", back_populates="rented_rooms")
-    invoices = relationship("Invoice", back_populates="rented_room")
+    invoices = relationship("Invoice", back_populates="rented_room", cascade="all, delete-orphan")

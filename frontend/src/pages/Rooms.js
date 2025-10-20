@@ -122,7 +122,8 @@ const Rooms = () => {
         fetchAllRooms();
       }
     } catch (error) {
-      message.error('Lỗi khi xóa phòng!');
+      const detail = error?.response?.data?.detail;
+      message.error(detail || 'Lỗi khi xóa phòng!');
     }
   };
 

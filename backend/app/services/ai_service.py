@@ -1,16 +1,49 @@
 import google.generativeai as genai
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 from app.core.config import settings
 from app.core.database import get_db
 from sqlalchemy.orm import Session
 from sqlalchemy import text
+import re
 
 class AIService:
     def __init__(self):
-        # Cấu hình Gemini AI
-        genai.configure(api_key="AIzaSyCIEnHLUvhcB_fO1vnMQQ7w9BR72qhNLPo")
-        self.model = genai.GenerativeModel('gemini-2.5-flash')
-        
+        # Cấu hình Gemini AI (dùng key từ config, không hardcode)
+        genai.configure(api_key=settings.gemini_api_key)
+        # Dùng model ổn định, phổ biến
+        self.model = genai.GenerativeModel('gemini-2.5-pro')
+
+    def _sanitize_markdown(self, content: str) -> str:
+        """Chuẩn hoá Markdown: chỉ dùng '-' cho bullet, bỏ ký tự lạ/emoji/fences, gọn dòng."""
+        if not content:
+            return content
+        lines = content.splitlines()
+        out = []
+        for raw in lines:
+            line = raw.strip()
+            # Bỏ code fences
+            if line in ("```", "```markdown", "```md"):
+                continue
+            # Thay bullet lạ ở đầu dòng thành '- '
+            if re.match(r"^[•—–]+\s*", line):
+                line = re.sub(r"^[•—–]+\s*", "- ", line)
+            # Thay '•', '—', '–' xuất hiện đầu dòng sau khoảng trắng
+            line = re.sub(r"^\s*[•—–]\s*", "- ", line)
+            # Chuẩn hoá bullet '-'
+            line = re.sub(r"^\s*-\s*", "- ", line)
+            # Loại bỏ dòng chỉ gồm gạch trang trí
+            if re.fullmatch(r"[-–—\s]+", line):
+                continue
+            # Bỏ emoji phổ biến ở đầu dòng tiêu đề
+            line = re.sub(r"^(##\s*)[\u2600-\u27BF\U0001F300-\U0001FAFF]\s*", r"\1", line)
+            # Bỏ emoji đầu dòng bullet
+            line = re.sub(r"^(-\s*)[\u2600-\u27BF\U0001F300-\U0001FAFF]\s*", r"\1", line)
+            out.append(line)
+        # Ghép lại và rút gọn nhiều dòng trống liên tiếp
+        text_out = "\n".join(out)
+        text_out = re.sub(r"\n{3,}", "\n\n", text_out).strip()
+        return text_out
+
     def generate_response(self, user_question: str, context: Optional[Dict] = None) -> str:
         """
         Tạo phản hồi từ AI dựa trên câu hỏi của người dùng và context từ database
@@ -27,7 +60,7 @@ class AIService:
             # Gọi Gemini AI
             response = self.model.generate_content(prompt)
             
-            return response.text
+            return self._sanitize_markdown(response.text)
             
         except Exception as e:
             return f"Xin lỗi, tôi gặp lỗi khi xử lý câu hỏi của bạn: {str(e)}"
@@ -37,22 +70,19 @@ class AIService:
         Tạo prompt cho AI với context từ database
         """
         prompt = f"""
-        Bạn là một trợ lý AI chuyên về quản lý nhà trọ và phòng cho thuê. 
+        Bạn là trợ lý AI cho hệ thống quản lý nhà trọ.
+        Hãy trả lời NGẮN GỌN bằng Markdown, tuân thủ nghiêm ngặt các quy tắc:
+        - Chỉ dùng dấu gạch đầu dòng '-' cho bullet (không dùng '•', '—', '–' hay ký tự đặc biệt khác).
+        - Có thể dùng tiêu đề dạng '## Tiêu đề' nếu cần.
+        - Dùng in đậm với **text** cho thông tin quan trọng.
+        - Không chèn ký tự trang trí, đường kẻ, emoji, hoặc khoảng trắng/dòng trống thừa.
+        - Mỗi bullet tối đa 1-2 câu, rõ ràng, súc tích.
+        - Không viết câu mở đầu/kết luận; trả lời trực tiếp.
         
-        Thông tin hiện tại từ hệ thống:
+        Ngữ cảnh hệ thống (nếu có):
         {db_context}
         
         Câu hỏi của người dùng: {question}
-        
-        YÊU CẦU TRẢ LỜI:
-        - Trả lời bằng tiếng Việt, ngắn gọn, có cấu trúc rõ ràng
-        - Sử dụng bullet points (-) cho danh sách
-        - Sử dụng ## cho tiêu đề phần (nếu cần)
-        - Sử dụng **text** để làm nổi bật thông tin quan trọng ( in đậm nó )
-        - Đưa ra số liệu cụ thể từ dữ liệu hệ thống
-        - Nếu là câu hỏi phức tạp, chia thành các phần: Tình hình hiện tại, Phân tích, Khuyến nghị
-        - Mỗi ý chính không quá 2 dòng
-        - Sử dụng emoji phù hợp để dễ đọc hơn
         """
         return prompt
     
@@ -303,35 +333,37 @@ class AIService:
             total_invoices = paid_invoices + pending_invoices
             payment_rate = (paid_invoices / total_invoices * 100) if total_invoices > 0 else 0
 
-            # Tạo prompt yêu cầu format cụ thể
+            # Prompt chuẩn Markdown, KHÔNG emoji/ký tự lạ, KHÔNG câu mở đầu/kết luận
             prompt = f"""
-            Bạn là chuyên gia phân tích doanh thu. Hãy tạo báo cáo phân tích ngắn gọn, có cấu trúc với dữ liệu sau (phạm vi tài khoản hiện tại):
-            
-            DOANH THU: {start_date} đến {end_date}
-            - Tổng doanh thu: {total_revenue:,.0f} VNĐ
-            - Hóa đơn đã thanh toán: {paid_invoices}
-            - Hóa đơn chưa thanh toán: {pending_invoices}
-            - Tổng số hóa đơn: {total_invoices}
-            - Tỷ lệ thanh toán: {payment_rate:.1f}%
-            - Doanh thu TB/tháng: {avg_monthly_revenue:,.0f} VNĐ
-            
-            YÊU CẦU FORMAT:
-            1. Bắt đầu với "## 📊 PHÂN TÍCH DOANH THU"
-            2. Phần "## 📈 CHỈ SỐ CHÍNH" - liệt kê 3-4 chỉ số quan trọng nhất dạng bullet point
-            3. Phần "## ✅ ĐIỂM MẠNH" - 2-3 điểm tích cực (nếu có)
-            4. Phần "## ⚠️ VẤN ĐỀ CẦN LƯU Ý" - 2-3 vấn đề cần cải thiện (nếu có)
-            5. Phần "## 💡 KHUYẾN NGHỊ" - 3-4 gợi ý cải thiện cụ thể, ngắn gọn
-            
-            LƯU Ý:
-            - Mỗi bullet point PHẢI ngắn gọn (1-2 dòng)
-            - Sử dụng số liệu cụ thể từ dữ liệu trên
-            - Không viết văn xuôi dài
-            - Tập trung vào insights quan trọng
-            - Sử dụng emoji phù hợp cho mỗi phần
+            Bạn là chuyên gia phân tích doanh thu. Hãy trả lời bằng Markdown, đúng định dạng sau và KHÔNG thêm ký tự trang trí/emoji:
+
+            ## PHÂN TÍCH DOANH THU
+            - **Kỳ báo cáo:** {start_date} - {end_date}
+
+            ## CHỈ SỐ CHÍNH
+            - **Tổng doanh thu:** {total_revenue:,.0f} VNĐ
+            - **Tỷ lệ thanh toán:** {payment_rate:.1f}%
+            - **Số lượng hóa đơn:** {total_invoices}
+            - **Giá trị trung bình/hóa đơn:** {(total_revenue / total_invoices if total_invoices > 0 else 0):,.0f} VNĐ
+
+            ## ĐIỂM MẠNH
+            - Nêu tối đa 3 ý ngắn gọn dựa trên dữ liệu trên.
+
+            ## VẤN ĐỀ CẦN LƯU Ý
+            - Nêu tối đa 3 ý ngắn gọn, tập trung rủi ro/điểm yếu.
+
+            ## KHUYẾN NGHỊ
+            - Đưa ra 3-4 gợi ý cụ thể, dễ hành động.
+
+            YÊU CẦU ĐỊNH DẠNG:
+            - Chỉ dùng dấu '-' cho bullet (không dùng '•', '—', '–' hay ký tự khác).
+            - Không có dòng trống thừa, không bọc trong ```.
+            - Không viết câu mở đầu/kết luận.
+            - Mỗi bullet tối đa 1-2 câu, ≤ 120 ký tự.
             """
 
             response = self.model.generate_content(prompt)
-            return response.text
+            return self._sanitize_markdown(response.text)
 
         except Exception as e:
             return f"Không thể tạo báo cáo doanh thu: {str(e)}"

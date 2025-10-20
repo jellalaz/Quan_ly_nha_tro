@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { message } from 'antd';
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000/api/v2';
 
@@ -30,9 +31,19 @@ api.interceptors.response.use(
     return response;
   },
   (error) => {
-    if (error.response?.status === 401) {
+    const status = error?.response?.status;
+    if (status === 401) {
       localStorage.removeItem('access_token');
       window.location.href = '/login';
+      return Promise.reject(error);
+    }
+
+    // Show backend-provided message if available
+    const detail = error?.response?.data?.detail || error?.response?.data?.message;
+    if (detail) {
+      message.error(detail);
+    } else {
+      message.error('Đã xảy ra lỗi, vui lòng thử lại.');
     }
     return Promise.reject(error);
   }

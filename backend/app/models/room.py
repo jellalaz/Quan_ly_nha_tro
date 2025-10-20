@@ -17,5 +17,6 @@ class Room(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
     house = relationship("House", back_populates="rooms")
-    assets = relationship("Asset", back_populates="room")
-    rented_rooms = relationship("RentedRoom", back_populates="room")
+    # Ensure related assets and rental records are removed when a room is deleted
+    assets = relationship("Asset", back_populates="room", cascade="all, delete-orphan")
+    rented_rooms = relationship("RentedRoom", back_populates="room", cascade="all, delete-orphan")

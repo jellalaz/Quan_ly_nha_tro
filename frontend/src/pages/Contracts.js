@@ -667,9 +667,9 @@ const Contracts = () => {
                 }
               }}
             >
-              {rooms.map(room => (
+              {(rooms.length ? rooms : roomsAll).map(room => (
                 <Option key={room.room_id} value={room.room_id}>
-                  {room.name} - {room.house?.name}
+                  {room.name}
                 </Option>
               ))}
             </Select>

@@ -63,7 +63,8 @@ const Houses = () => {
       message.success('Xóa nhà trọ thành công!');
       fetchHouses();
     } catch (error) {
-      message.error('Lỗi khi xóa nhà trọ!');
+      const detail = error?.response?.data?.detail;
+      message.error(detail || 'Lỗi khi xóa nhà trọ!');
     }
   };
 
