@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ConfigProvider } from 'antd';
+import { App as AntdApp } from 'antd';
 import viVN from 'antd/locale/vi_VN';
 import Layout from './components/Layout';
 import Login from './pages/Login';
@@ -44,83 +45,85 @@ const OwnerRoute = ({ children }) => {
 function App() {
     return (
         <ConfigProvider locale={viVN}>
-            <Router>
-                <Routes>
-                    <Route
-                        path="/login"
-                        element={
-                            <PublicRoute>
-                                <Login />
-                            </PublicRoute>
-                        }
-                    />
-                    <Route
-                        path="/register"
-                        element={
-                            <PublicRoute>
-                                <Register />
-                            </PublicRoute>
-                        }
-                    />
-                    <Route
-                        path="/"
-                        element={
-                            <ProtectedRoute>
-                                <Layout />
-                            </ProtectedRoute>
-                        }
-                    >
-                        <Route index element={<Navigate to="/dashboard" replace />} />
-                        <Route path="dashboard" element={<Dashboard />} />
+            <AntdApp>
+                <Router>
+                    <Routes>
+                        <Route
+                            path="/login"
+                            element={
+                                <PublicRoute>
+                                    <Login />
+                                </PublicRoute>
+                            }
+                        />
+                        <Route
+                            path="/register"
+                            element={
+                                <PublicRoute>
+                                    <Register />
+                                </PublicRoute>
+                            }
+                        />
+                        <Route
+                            path="/"
+                            element={
+                                <ProtectedRoute>
+                                    <Layout />
+                                </ProtectedRoute>
+                            }
+                        >
+                            <Route index element={<Navigate to="/dashboard" replace />} />
+                            <Route path="dashboard" element={<Dashboard />} />
 
 
-                        {/* Owner routes */}
-                        <Route
-                            path="houses"
-                            element={
-                                <OwnerRoute>
-                                    <Houses />
-                                </OwnerRoute>
-                            }
-                        />
-                        <Route
-                            path="rooms"
-                            element={
-                                <OwnerRoute>
-                                    <Rooms />
-                                </OwnerRoute>
-                            }
-                        />
-                        <Route
-                            path="contracts"
-                            element={
-                                <OwnerRoute>
-                                    <Contracts />
-                                </OwnerRoute>
-                            }
-                        />
-                        <Route
-                            path="invoices"
-                            element={
-                                <OwnerRoute>
-                                    <Invoices />
-                                </OwnerRoute>
-                            }
-                        />
-                        <Route
-                            path="reports"
-                            element={
-                                <OwnerRoute>
-                                    <Reports />
-                                </OwnerRoute>
-                            }
-                        />
+                            {/* Owner routes */}
+                            <Route
+                                path="houses"
+                                element={
+                                    <OwnerRoute>
+                                        <Houses />
+                                    </OwnerRoute>
+                                }
+                            />
+                            <Route
+                                path="rooms"
+                                element={
+                                    <OwnerRoute>
+                                        <Rooms />
+                                    </OwnerRoute>
+                                }
+                            />
+                            <Route
+                                path="contracts"
+                                element={
+                                    <OwnerRoute>
+                                        <Contracts />
+                                    </OwnerRoute>
+                                }
+                            />
+                            <Route
+                                path="invoices"
+                                element={
+                                    <OwnerRoute>
+                                        <Invoices />
+                                    </OwnerRoute>
+                                }
+                            />
+                            <Route
+                                path="reports"
+                                element={
+                                    <OwnerRoute>
+                                        <Reports />
+                                    </OwnerRoute>
+                                }
+                            />
 
-                        {/* Profile route for both roles under protected layout */}
-                        <Route path="profile" element={<Profile />} />
-                    </Route>
-                </Routes>
-            </Router>
+                            {/* Profile route for both roles under protected layout */}
+                            <Route path="profile" element={<Profile />} />
+                        </Route>
+                    </Routes>
+                </Router>
+            </AntdApp>
         </ConfigProvider>
     );
 }

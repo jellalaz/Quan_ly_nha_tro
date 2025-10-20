@@ -1,27 +1,28 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Card, 
-  Table, 
-  Button, 
-  Modal, 
-  Form, 
-  Input, 
-  InputNumber, 
-  message,
+import {
+  Card,
+  Table,
+  Button,
+  Modal,
+  Form,
+  Input,
+  InputNumber,
+  App, // Import App
   Space,
   Popconfirm,
   Tag
 } from 'antd';
-import { 
-  PlusOutlined, 
-  EditOutlined, 
-  DeleteOutlined, 
-  EyeOutlined 
+import {
+  PlusOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  EyeOutlined
 } from '@ant-design/icons';
 import { houseService } from '../services/houseService';
 import { useNavigate } from 'react-router-dom';
 
 const Houses = () => {
+  const { message } = App.useApp(); // Use hook to get message
   const [houses, setHouses] = useState([]);
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
@@ -59,12 +60,12 @@ const Houses = () => {
 
   const handleDelete = async (id) => {
     try {
-      await houseService.delete(id);
+      await houseService.delete(id, { message });
       message.success('Xóa nhà trọ thành công!');
       fetchHouses();
     } catch (error) {
-      const detail = error?.response?.data?.detail;
-      message.error(detail || 'Lỗi khi xóa nhà trọ!');
+      // Error is now handled by the interceptor
+      console.error('Delete house error:', error);
     }
   };
 
@@ -126,14 +127,14 @@ const Houses = () => {
       render: (_, record) => (
         <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 8 }}>
           <Button
-            type="link" 
+            type="link"
             icon={<EyeOutlined />}
             onClick={() => navigate(`/rooms?house=${record.house_id}`)}
           >
             Xem phòng
           </Button>
-          <Button 
-            type="link" 
+          <Button
+            type="link"
             icon={<EditOutlined />}
             onClick={() => handleEdit(record)}
           >
@@ -203,9 +204,9 @@ const Houses = () => {
             label="Số tầng"
             rules={[{ required: true, message: 'Vui lòng nhập số tầng!' }]}
           >
-            <InputNumber 
-              min={1} 
-              max={20} 
+            <InputNumber
+              min={1}
+              max={20}
               style={{ width: '100%' }}
               placeholder="Nhập số tầng"
             />
@@ -232,8 +233,8 @@ const Houses = () => {
             label="Địa chỉ chi tiết"
             rules={[{ required: true, message: 'Vui lòng nhập địa chỉ!' }]}
           >
-            <Input.TextArea 
-              rows={3} 
+            <Input.TextArea
+              rows={3}
               placeholder="Nhập địa chỉ chi tiết"
             />
           </Form.Item>

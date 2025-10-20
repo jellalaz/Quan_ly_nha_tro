@@ -21,8 +21,8 @@ export const houseService = {
     return response.data;
   },
 
-  delete: async (id) => {
-    const response = await api.delete(`/houses/${id}`);
+  delete: async (id, config) => {
+    const response = await api.delete(`/houses/${id}`, config);
     return response.data;
   }
 };
