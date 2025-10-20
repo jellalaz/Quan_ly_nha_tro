@@ -46,6 +46,16 @@ const Contracts = () => {
   const roomId = searchParams.get('room');
   const [roomsAll, setRoomsAll] = useState([]);
 
+  // Filter states
+  const [filters, setFilters] = useState({
+    houseId: null,
+    roomId: null,
+    status: null,
+    tenantName: '',
+    startDate: null,
+    endDate: null,
+  });
+
   useEffect(() => {
     fetchHouses();
     if (roomId) {
@@ -166,12 +176,76 @@ const Contracts = () => {
     }
   };
 
+  const handleFilterChange = (changedFields) => {
+    setFilters({ ...filters, ...changedFields });
+  };
+
+  const handleClearFilters = () => {
+    setFilters({
+      houseId: null,
+      roomId: null,
+      status: null,
+      tenantName: '',
+      startDate: null,
+      endDate: null,
+    });
+    setSearchParams({});
+    fetchAllContracts();
+  };
+
   const roomsMap = useMemo(() => {
     const m = {};
     roomsAll.forEach(r => { m[r.room_id] = r; });
     rooms.forEach(r => { m[r.room_id] = r; }); // prefer freshly selected list
     return m;
   }, [roomsAll, rooms]);
+
+  // Filter contracts based on filter state
+  const filteredContracts = useMemo(() => {
+    return contracts.filter(contract => {
+      // Filter by house
+      if (filters.houseId) {
+        const contractRoom = contract.room || roomsMap[contract.room_id];
+        if (!contractRoom || contractRoom.house_id !== filters.houseId) {
+          return false;
+        }
+      }
+
+      // Filter by room
+      if (filters.roomId && contract.room_id !== filters.roomId) {
+        return false;
+      }
+
+      // Filter by status
+      if (filters.status !== null && filters.status !== undefined) {
+        if (filters.status === 'active' && !contract.is_active) return false;
+        if (filters.status === 'inactive' && contract.is_active) return false;
+      }
+
+      // Filter by tenant name
+      if (filters.tenantName && !contract.tenant_name?.toLowerCase().includes(filters.tenantName.toLowerCase())) {
+        return false;
+      }
+
+      // Filter by start date
+      if (filters.startDate) {
+        const contractStart = dayjs(contract.start_date);
+        if (contractStart.isBefore(filters.startDate, 'day')) {
+          return false;
+        }
+      }
+
+      // Filter by end date
+      if (filters.endDate) {
+        const contractEnd = dayjs(contract.end_date);
+        if (contractEnd.isAfter(filters.endDate, 'day')) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [contracts, filters, roomsMap]);
 
   const columns = [
     {
@@ -265,7 +339,7 @@ const Contracts = () => {
   return (
     <div>
       <Card
-        title={`Quản lý hợp đồng thuê${roomId ? ` - ${rooms.find(r => r.room_id == roomId)?.name}` : ''}`}
+        title={`Quản lý hợp đồng thuê${roomId ? ` - ${rooms.find(r => r.room_id === parseInt(roomId))?.name}` : ''}`}
         extra={
           <Space>
             <Select
@@ -275,8 +349,10 @@ const Contracts = () => {
               onChange={(value) => {
                 if (value) {
                   fetchRooms(value);
+                  handleFilterChange({ houseId: value });
                 } else {
                   setRooms([]);
+                  handleFilterChange({ houseId: null });
                 }
               }}
             >
@@ -294,8 +370,10 @@ const Contracts = () => {
               onChange={(value) => {
                 if (value) {
                   setSearchParams({ room: value });
+                  handleFilterChange({ roomId: value });
                 } else {
                   setSearchParams({});
+                  handleFilterChange({ roomId: null });
                 }
               }}
             >
@@ -311,9 +389,63 @@ const Contracts = () => {
           </Space>
         }
       >
+        <Form layout="inline" style={{ marginBottom: 16 }}>
+          <Form.Item label="Tên khách thuê">
+            <Input
+              placeholder="Nhập tên khách thuê"
+              value={filters.tenantName}
+              onChange={(e) => handleFilterChange({ tenantName: e.target.value })}
+            />
+          </Form.Item>
+          <Form.Item label="Ngày bắt đầu">
+            <DatePicker
+              style={{ width: 200 }}
+              value={filters.startDate}
+              onChange={(date) => handleFilterChange({ startDate: date })}
+            />
+          </Form.Item>
+          <Form.Item label="Ngày kết thúc">
+            <DatePicker
+              style={{ width: 200 }}
+              value={filters.endDate}
+              onChange={(date) => handleFilterChange({ endDate: date })}
+            />
+          </Form.Item>
+          <Form.Item label="Trạng thái">
+            <Select
+              placeholder="Chọn trạng thái"
+              style={{ width: 200 }}
+              allowClear
+              value={filters.status}
+              onChange={(value) => handleFilterChange({ status: value })}
+            >
+              <Option value="active">Đang thuê</Option>
+              <Option value="inactive">Đã kết thúc</Option>
+            </Select>
+          </Form.Item>
+          <Form.Item>
+            <Button
+              type="primary"
+              onClick={() => {
+                setFilters({
+                  houseId: null,
+                  roomId: null,
+                  status: null,
+                  tenantName: '',
+                  startDate: null,
+                  endDate: null,
+                });
+                setSearchParams({});
+              }}
+            >
+              Xóa bộ lọc
+            </Button>
+          </Form.Item>
+        </Form>
+
         <Table
           columns={columns}
-          dataSource={contracts}
+          dataSource={filteredContracts}
           rowKey="rr_id"
           loading={loading}
           pagination={{

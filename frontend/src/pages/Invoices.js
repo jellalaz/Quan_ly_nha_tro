@@ -50,6 +50,14 @@ const Invoices = () => {
 
   const contractId = searchParams.get('contract');
 
+  // Filter states
+  const [filters, setFilters] = useState({
+    houseId: null,
+    contractId: null,
+    status: null,
+    month: null,
+  });
+
   useEffect(() => {
     fetchContracts();
     if (contractId) {
@@ -350,6 +358,54 @@ const Invoices = () => {
     }
   };
 
+  const handleFilterChange = (changedFields) => {
+    setFilters({ ...filters, ...changedFields });
+  };
+
+  const handleClearFilters = () => {
+    setFilters({
+      houseId: null,
+      contractId: null,
+      status: null,
+      month: null,
+    });
+  };
+
+  // Filter invoices based on filter state
+  const filteredInvoices = useMemo(() => {
+    return invoices.filter(invoice => {
+      // Filter by house
+      if (filters.houseId) {
+        const invoiceRoom = invoice.rented_room?.room || roomsMap[contractsMap[invoice.rr_id]?.room_id];
+        if (!invoiceRoom || invoiceRoom.house_id !== filters.houseId) {
+          return false;
+        }
+      }
+
+      // Filter by contract
+      if (filters.contractId && invoice.rr_id !== filters.contractId) {
+        return false;
+      }
+
+      // Filter by status
+      if (filters.status !== null && filters.status !== undefined) {
+        const isPaid = invoice.is_paid;
+        if (filters.status === '1' && !isPaid) return false;
+        if (filters.status === '0' && isPaid) return false;
+      }
+
+      // Filter by month
+      if (filters.month) {
+        const invoiceDate = dayjs(invoice.due_date);
+        if (!invoiceDate.isSame(filters.month, 'month')) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [invoices, filters, roomsMap, contractsMap]);
+
   const handleViewInvoice = (record) => {
     setSelectedInvoice(record);
     setViewInvoiceModal(true);
@@ -587,9 +643,76 @@ const Invoices = () => {
           </Space>
         }
       >
+        <div style={{ marginBottom: 16 }}>
+          <Row gutter={[16, 16]}>
+            <Col span={6}>
+              <DatePicker
+                placeholder="Chọn tháng"
+                style={{ width: '100%' }}
+                picker="month"
+                allowClear
+                value={filters.month}
+                onChange={(date) => handleFilterChange({ month: date })}
+              />
+            </Col>
+            <Col span={6}>
+              <Select
+                placeholder="Chọn nhà trọ"
+                style={{ width: '100%' }}
+                allowClear
+                value={filters.houseId}
+                onChange={(value) => handleFilterChange({ houseId: value })}
+              >
+                {housesAll.map(house => (
+                  <Option key={house.house_id} value={house.house_id}>
+                    {house.name}
+                  </Option>
+                ))}
+              </Select>
+            </Col>
+            <Col span={6}>
+              <Select
+                placeholder="Chọn hợp đồng"
+                style={{ width: '100%' }}
+                allowClear
+                value={filters.contractId}
+                onChange={(value) => handleFilterChange({ contractId: value })}
+              >
+                {contracts.map(contract => (
+                  <Option key={contract.rr_id} value={contract.rr_id}>
+                    {contract.tenant_name} - {contract.room?.name || roomsMap[contract.room_id]?.name || 'N/A'}
+                  </Option>
+                ))}
+              </Select>
+            </Col>
+            <Col span={6}>
+              <Select
+                placeholder="Chọn trạng thái"
+                style={{ width: '100%' }}
+                allowClear
+                value={filters.status}
+                onChange={(value) => handleFilterChange({ status: value })}
+              >
+                <Option value="1">Đã thanh toán</Option>
+                <Option value="0">Chưa thanh toán</Option>
+              </Select>
+            </Col>
+          </Row>
+          <Row style={{ marginTop: 16 }}>
+            <Col span={24}>
+              <Button
+                type="primary"
+                onClick={handleClearFilters}
+              >
+                Xóa bộ lọc
+              </Button>
+            </Col>
+          </Row>
+        </div>
+
         <Table
           columns={columns}
-          dataSource={invoices}
+          dataSource={filteredInvoices}
           rowKey="invoice_id"
           loading={loading}
           pagination={{
