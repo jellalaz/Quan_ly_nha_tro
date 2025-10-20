@@ -27,6 +27,14 @@ const Houses = () => {
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingHouse, setEditingHouse] = useState(null);
+  const [pagination, setPagination] = useState({
+    current: 1,
+    pageSize: 5,
+    showSizeChanger: true,
+    pageSizeOptions: ['5', '10', '20', '50'],
+    showQuickJumper: true,
+    showTotal: (total) => `Tổng cộng ${total} nhà trọ`,
+  });
   const [form] = Form.useForm();
   const navigate = useNavigate();
 
@@ -44,6 +52,10 @@ const Houses = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleTableChange = (pagination) => {
+    setPagination(pagination);
   };
 
   const handleCreate = () => {
@@ -170,12 +182,8 @@ const Houses = () => {
           dataSource={houses}
           rowKey="house_id"
           loading={loading}
-          pagination={{
-            pageSize: 10,
-            showSizeChanger: true,
-            showQuickJumper: true,
-            showTotal: (total) => `Tổng cộng ${total} nhà trọ`,
-          }}
+          pagination={pagination}
+          onChange={handleTableChange}
         />
       </Card>
 

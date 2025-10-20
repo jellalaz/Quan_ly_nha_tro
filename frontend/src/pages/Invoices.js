@@ -36,6 +36,14 @@ const Invoices = () => {
   const [invoices, setInvoices] = useState([]);
   const [contracts, setContracts] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [pagination, setPagination] = useState({
+    current: 1,
+    pageSize: 5,
+    showSizeChanger: true,
+    pageSizeOptions: ['5', '10', '20', '50'],
+    showQuickJumper: true,
+    showTotal: (total) => `Tổng cộng ${total} hóa đơn`,
+  });
   const [modalVisible, setModalVisible] = useState(false);
   const [editingInvoice, setEditingInvoice] = useState(null);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -121,6 +129,10 @@ const Invoices = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleTableChange = (pagination) => {
+    setPagination(pagination);
   };
 
   const handleCreate = async () => {
@@ -591,12 +603,8 @@ const Invoices = () => {
           dataSource={invoices}
           rowKey="invoice_id"
           loading={loading}
-          pagination={{
-            pageSize: 10,
-            showSizeChanger: true,
-            showQuickJumper: true,
-            showTotal: (total) => `Tổng cộng ${total} hóa đơn`,
-          }}
+          pagination={pagination}
+          onChange={handleTableChange}
         />
       </Card>
 

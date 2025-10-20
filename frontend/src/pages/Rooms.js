@@ -41,6 +41,14 @@ const Rooms = () => {
   const [editingRoom, setEditingRoom] = useState(null);
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [searchParams, setSearchParams] = useSearchParams();
+  const [pagination, setPagination] = useState({
+    current: 1,
+    pageSize: 5,
+    showSizeChanger: true,
+    pageSizeOptions: ['5', '10', '20', '50'],
+    showQuickJumper: true,
+    showTotal: (total) => `Tổng cộng ${total} phòng`,
+  });
   const [form] = Form.useForm();
   const [assetForm] = Form.useForm();
   const navigate = useNavigate();
@@ -96,6 +104,10 @@ const Rooms = () => {
     } catch (error) {
       message.error('Lỗi khi tải danh sách tài sản!');
     }
+  };
+
+  const handleTableChange = (pagination) => {
+    setPagination(pagination);
   };
 
   const handleCreate = () => {
@@ -298,12 +310,8 @@ const Rooms = () => {
           dataSource={rooms}
           rowKey="room_id"
           loading={loading}
-          pagination={{
-            pageSize: 10,
-            showSizeChanger: true,
-            showQuickJumper: true,
-            showTotal: (total) => `Tổng cộng ${total} phòng`,
-          }}
+          pagination={pagination}
+          onChange={handleTableChange}
         />
       </Card>
 
