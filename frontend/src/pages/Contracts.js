@@ -28,7 +28,6 @@ import { roomService } from '../services/roomService';
 import { houseService } from '../services/houseService';
 import dayjs from 'dayjs';
 
-const { TextArea } = Input;
 const { Option } = Select;
 
 const Contracts = () => {
@@ -36,6 +35,7 @@ const Contracts = () => {
   const [rooms, setRooms] = useState([]);
   const [houses, setHouses] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [pageSize, setPageSize] = useState(10);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingContract, setEditingContract] = useState(null);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -44,6 +44,16 @@ const Contracts = () => {
 
   const roomId = searchParams.get('room');
   const [roomsAll, setRoomsAll] = useState([]);
+
+  // Filter states
+  const [filters, setFilters] = useState({
+    houseId: null,
+    roomId: null,
+    status: null,
+    tenantName: '',
+    startDate: null,
+    endDate: null,
+  });
 
   useEffect(() => {
     fetchHouses();
@@ -110,7 +120,15 @@ const Contracts = () => {
     setEditingContract(null);
     form.resetFields();
     if (roomId) {
-      form.setFieldsValue({ room_id: parseInt(roomId) });
+      const rid = parseInt(roomId);
+      form.setFieldsValue({ room_id: rid });
+      // Prefill monthly_rent from room price
+      const selectedRoom = roomsAll.find(r => r.room_id === rid) || rooms.find(r => r.room_id === rid);
+      if (selectedRoom) {
+        form.setFieldsValue({ monthly_rent: selectedRoom.price });
+      }
+    } else {
+      form.setFieldsValue({ monthly_rent: undefined });
     }
     setModalVisible(true);
   };
@@ -141,8 +159,17 @@ const Contracts = () => {
 
   const handleSubmit = async (values) => {
     try {
+      // If creating new contract, enforce monthly_rent from selected room price
+      let submitValues = { ...values };
+      if (!editingContract && values.room_id) {
+        const selectedRoom = roomsMap[values.room_id];
+        if (selectedRoom) {
+          submitValues.monthly_rent = selectedRoom.price;
+        }
+      }
+
       const submitData = {
-        ...values,
+        ...submitValues,
         start_date: values.start_date.format('YYYY-MM-DD'),
         end_date: values.end_date.format('YYYY-MM-DD'),
       };
@@ -165,12 +192,76 @@ const Contracts = () => {
     }
   };
 
+  const handleFilterChange = (changedFields) => {
+    setFilters({ ...filters, ...changedFields });
+  };
+
+  const handleClearFilters = () => {
+    setFilters({
+      houseId: null,
+      roomId: null,
+      status: null,
+      tenantName: '',
+      startDate: null,
+      endDate: null,
+    });
+    setSearchParams({});
+    fetchAllContracts();
+  };
+
   const roomsMap = useMemo(() => {
     const m = {};
     roomsAll.forEach(r => { m[r.room_id] = r; });
     rooms.forEach(r => { m[r.room_id] = r; }); // prefer freshly selected list
     return m;
   }, [roomsAll, rooms]);
+
+  // Filter contracts based on filter state
+  const filteredContracts = useMemo(() => {
+    return contracts.filter(contract => {
+      // Filter by house
+      if (filters.houseId) {
+        const contractRoom = contract.room || roomsMap[contract.room_id];
+        if (!contractRoom || contractRoom.house_id !== filters.houseId) {
+          return false;
+        }
+      }
+
+      // Filter by room
+      if (filters.roomId && contract.room_id !== filters.roomId) {
+        return false;
+      }
+
+      // Filter by status
+      if (filters.status !== null && filters.status !== undefined) {
+        if (filters.status === 'active' && !contract.is_active) return false;
+        if (filters.status === 'inactive' && contract.is_active) return false;
+      }
+
+      // Filter by tenant name
+      if (filters.tenantName && !contract.tenant_name?.toLowerCase().includes(filters.tenantName.toLowerCase())) {
+        return false;
+      }
+
+      // Filter by start date
+      if (filters.startDate) {
+        const contractStart = dayjs(contract.start_date);
+        if (contractStart.isBefore(filters.startDate, 'day')) {
+          return false;
+        }
+      }
+
+      // Filter by end date
+      if (filters.endDate) {
+        const contractEnd = dayjs(contract.end_date);
+        if (contractEnd.isAfter(filters.endDate, 'day')) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [contracts, filters, roomsMap]);
 
   const columns = [
     {
@@ -264,63 +355,122 @@ const Contracts = () => {
   return (
     <div>
       <Card
-        title={`Quản lý hợp đồng thuê${roomId ? ` - ${rooms.find(r => r.room_id == roomId)?.name}` : ''}`}
+        title={`Quản lý hợp đồng thuê${roomId ? ` - ${rooms.find(r => r.room_id === parseInt(roomId))?.name}` : ''}`}
         extra={
-          <Space>
-            <Select
-              placeholder="Chọn nhà trọ"
-              style={{ width: 200 }}
-              allowClear
-              onChange={(value) => {
-                if (value) {
-                  fetchRooms(value);
-                } else {
-                  setRooms([]);
-                }
-              }}
-            >
-              {houses.map(house => (
-                <Option key={house.house_id} value={house.house_id}>
-                  {house.name}
-                </Option>
-              ))}
-            </Select>
-            <Select
-              placeholder="Chọn phòng"
-              style={{ width: 200 }}
-              allowClear
-              disabled={!rooms.length}
-              onChange={(value) => {
-                if (value) {
-                  setSearchParams({ room: value });
-                } else {
-                  setSearchParams({});
-                }
-              }}
-            >
-              {rooms.map(room => (
-                <Option key={room.room_id} value={room.room_id}>
-                  {room.name}
-                </Option>
-              ))}
-            </Select>
-            <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
-              Tạo hợp đồng mới
-            </Button>
-          </Space>
+          <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
+            Tạo hợp đồng mới
+          </Button>
         }
       >
+        <div style={{ marginBottom: 16 }}>
+          <Row gutter={[8, 8]}>
+            <Col span={4}>
+              <Select
+                placeholder="Chọn nhà trọ"
+                style={{ width: '100%' }}
+                allowClear
+                onChange={(value) => {
+                  if (value) {
+                    fetchRooms(value);
+                    handleFilterChange({ houseId: value });
+                  } else {
+                    setRooms([]);
+                    handleFilterChange({ houseId: null });
+                  }
+                }}
+              >
+                {houses.map(house => (
+                  <Option key={house.house_id} value={house.house_id}>
+                    {house.name}
+                  </Option>
+                ))}
+              </Select>
+            </Col>
+            <Col span={4}>
+              <Select
+                placeholder="Chọn phòng"
+                style={{ width: '100%' }}
+                allowClear
+                disabled={!rooms.length}
+                onChange={(value) => {
+                  if (value) {
+                    setSearchParams({ room: value });
+                    handleFilterChange({ roomId: value });
+                  } else {
+                    setSearchParams({});
+                    handleFilterChange({ roomId: null });
+                  }
+                }}
+              >
+                {rooms.map(room => (
+                  <Option key={room.room_id} value={room.room_id}>
+                    {room.name}
+                  </Option>
+                ))}
+              </Select>
+            </Col>
+            <Col span={4}>
+              <Input
+                placeholder="Tên khách thuê"
+                value={filters.tenantName}
+                onChange={(e) => handleFilterChange({ tenantName: e.target.value })}
+              />
+            </Col>
+            <Col span={4}>
+              <Select
+                placeholder="Trạng thái"
+                style={{ width: '100%' }}
+                allowClear
+                value={filters.status}
+                onChange={(value) => handleFilterChange({ status: value })}
+              >
+                <Option value="active">Đang thuê</Option>
+                <Option value="inactive">Đã kết thúc</Option>
+              </Select>
+            </Col>
+            <Col span={4}>
+              <DatePicker
+                placeholder="Ngày bắt đầu"
+                style={{ width: '100%' }}
+                value={filters.startDate}
+                onChange={(date) => handleFilterChange({ startDate: date })}
+              />
+            </Col>
+            <Col span={4}>
+              <DatePicker
+                placeholder="Ngày kết thúc"
+                style={{ width: '100%' }}
+                value={filters.endDate}
+                onChange={(date) => handleFilterChange({ endDate: date })}
+              />
+            </Col>
+          </Row>
+          <Row style={{ marginTop: 8 }}>
+            <Col span={24}>
+              <Button
+                type="primary"
+                onClick={handleClearFilters}
+              >
+                Xóa bộ lọc
+              </Button>
+            </Col>
+          </Row>
+        </div>
+
         <Table
           columns={columns}
-          dataSource={contracts}
+          dataSource={filteredContracts}
           rowKey="rr_id"
           loading={loading}
           pagination={{
-            pageSize: 10,
+            pageSize: pageSize,
             showSizeChanger: true,
+            pageSizeOptions: ['10', '20', '50', '100'],
+            onShowSizeChange: (current, size) => setPageSize(size),
             showQuickJumper: true,
             showTotal: (total) => `Tổng cộng ${total} hợp đồng`,
           }}
+
         />
       </Card>
 
@@ -376,13 +526,13 @@ const Contracts = () => {
               <Form.Item
                 name="monthly_rent"
                 label="Tiền thuê/tháng (VNĐ)"
-                rules={[{ required: true, message: 'Vui lòng nhập tiền thuê!' }]}
               >
                 <InputNumber 
                   min={0} 
                   style={{ width: '100%' }}
                   placeholder="Tiền thuê"
                   formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                  disabled
                 />
               </Form.Item>
             </Col>
@@ -506,7 +656,17 @@ const Contracts = () => {
             label="Phòng"
             rules={[{ required: true, message: 'Vui lòng chọn phòng!' }]}
           >
-            <Select placeholder="Chọn phòng" disabled={!!roomId}>
+            <Select
+              placeholder="Chọn phòng"
+              disabled={!!roomId || !!editingContract}
+              onChange={(value) => {
+                // When room changes, update monthly_rent from room price
+                const selectedRoom = roomsMap[value];
+                if (selectedRoom) {
+                  form.setFieldsValue({ monthly_rent: selectedRoom.price });
+                }
+              }}
+            >
               {rooms.map(room => (
                 <Option key={room.room_id} value={room.room_id}>
                   {room.name} - {room.house?.name}

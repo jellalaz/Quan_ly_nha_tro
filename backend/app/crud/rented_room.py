@@ -20,6 +20,8 @@ def create_rented_room(db: Session, rented_room: RentedRoomCreate, owner_id: int
     if not room:
         return None
     db_rented_room = RentedRoom(**rented_room.model_dump())
+    # Enforce monthly_rent equals room.price at creation time
+    db_rented_room.monthly_rent = room.price
     db.add(db_rented_room)
     
     # Update room availability
@@ -60,6 +62,9 @@ def update_rented_room(db: Session, rr_id: int, rented_room_update: RentedRoomUp
     db_rented_room = get_rented_room_by_id(db, rr_id, owner_id)
     if db_rented_room:
         update_data = rented_room_update.dict(exclude_unset=True)
+        # Do not allow changing monthly_rent via update
+        if 'monthly_rent' in update_data:
+            update_data.pop('monthly_rent', None)
         for field, value in update_data.items():
             setattr(db_rented_room, field, value)
         db.commit()
