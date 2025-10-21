@@ -21,7 +21,6 @@ import { reportsService } from '../services/reportsService';
 import { aiService } from '../services/aiService';
 import dayjs from 'dayjs';
 
-const { RangePicker } = DatePicker;
 const { Title } = Typography;
 
 const Reports = () => {
@@ -30,11 +29,9 @@ const Reports = () => {
   const [aiReport, setAiReport] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
 
-  // Date range for reports
-  const [dateRange, setDateRange] = useState([
-    dayjs().subtract(30, 'days'),
-    dayjs()
-  ]);
+  // Start/End dates for reports
+  const [startDate, setStartDate] = useState(dayjs().subtract(30, 'days'));
+  const [endDate, setEndDate] = useState(dayjs());
 
   useEffect(() => {
     fetchSystemOverview();
@@ -53,8 +50,8 @@ const Reports = () => {
 
   const fetchRevenueStats = async () => {
     try {
-      const start = dateRange?.[0]?.format('YYYY-MM-DD');
-      const end = dateRange?.[1]?.format('YYYY-MM-DD');
+      const start = startDate?.format('YYYY-MM-DD');
+      const end = endDate?.format('YYYY-MM-DD');
       if (!start || !end) return;
       const data = await reportsService.getRevenueStats(start, end);
       setRevenueStats(data);
@@ -66,8 +63,8 @@ const Reports = () => {
   const generateAIReport = async () => {
     try {
       setAiLoading(true);
-      const start = dateRange?.[0]?.format('YYYY-MM-DD');
-      const end = dateRange?.[1]?.format('YYYY-MM-DD');
+      const start = startDate?.format('YYYY-MM-DD');
+      const end = endDate?.format('YYYY-MM-DD');
       if (!start || !end) {
         message.warning('Vui lòng chọn khoảng thời gian hợp lệ.');
         return;
@@ -81,9 +78,19 @@ const Reports = () => {
     }
   };
 
+  const disabledStartDate = (date) => {
+    if (!date || !endDate) return false;
+    return date.isAfter(endDate, 'day');
+  };
+
+  const disabledEndDate = (date) => {
+    if (!date || !startDate) return false;
+    return date.isBefore(startDate, 'day');
+  };
+
   return (
     <div>
-      <Title level={2}>Báo cáo & Phân tích</Title>
+      <Title level={2} style={{ marginBottom: 16 }}>Báo cáo & Phân tích</Title>
 
       {/* System Overview */}
       <Row gutter={16} style={{ marginBottom: 24 }}>
@@ -135,11 +142,21 @@ const Reports = () => {
       <Row gutter={16} style={{ marginBottom: 24 }}>
         <Col span={12}>
           <Card title="Thống kê doanh thu" extra={
-            <Space>
-              <RangePicker
-                value={dateRange}
-                onChange={setDateRange}
+            <Space size={8}>
+              <DatePicker
+                value={startDate}
+                onChange={(d) => setStartDate(d)}
                 format="DD/MM/YYYY"
+                placeholder="Bắt đầu"
+                disabledDate={disabledStartDate}
+              />
+              <span style={{ color: '#999' }}>đến</span>
+              <DatePicker
+                value={endDate}
+                onChange={(d) => setEndDate(d)}
+                format="DD/MM/YYYY"
+                placeholder="Kết thúc"
+                disabledDate={disabledEndDate}
               />
               <Button onClick={fetchRevenueStats}>Cập nhật</Button>
             </Space>

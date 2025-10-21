@@ -1,6 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 
 from app.core.database import get_db
 from app.schemas.invoice import Invoice, InvoiceCreate, InvoiceUpdate, InvoiceWithDetails
@@ -19,8 +19,30 @@ def create_invoice(invoice: InvoiceCreate, db: Session = Depends(get_db), curren
     return invoice_crud.get_invoice_by_id(db, created.invoice_id, current_user.owner_id)
 
 @router.get("/", response_model=List[InvoiceWithDetails])
-def read_invoices(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user: User = Depends(get_current_active_user)):
-    invoices = invoice_crud.get_all_invoices(db, owner_id=current_user.owner_id, skip=skip, limit=limit)
+def read_invoices(
+    skip: int = 0,
+    limit: int = 100,
+    month: Optional[str] = Query(default=None, description="YYYY-MM"),
+    house_id: Optional[int] = None,
+    room_id: Optional[int] = None,
+    is_paid: Optional[bool] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    # If any filter provided, use filtered fetch; else fallback to existing behavior
+    if any(v is not None for v in [month, house_id, room_id, is_paid]):
+        invoices = invoice_crud.get_invoices(
+            db,
+            owner_id=current_user.owner_id,
+            skip=skip,
+            limit=limit,
+            month=month,
+            house_id=house_id,
+            room_id=room_id,
+            is_paid=is_paid,
+        )
+    else:
+        invoices = invoice_crud.get_all_invoices(db, owner_id=current_user.owner_id, skip=skip, limit=limit)
     return invoices
 
 @router.get("/rented-room/{rr_id}", response_model=List[InvoiceWithDetails])
@@ -58,3 +80,10 @@ def pay_invoice(invoice_id: int, db: Session = Depends(get_db), current_user: Us
     if db_invoice is None:
         raise HTTPException(status_code=404, detail="Invoice not found")
     return {"message": "Invoice paid successfully"}
+
+@router.delete("/{invoice_id}")
+def delete_invoice(invoice_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_active_user)):
+    ok = invoice_crud.delete_invoice(db, invoice_id=invoice_id, owner_id=current_user.owner_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+    return {"message": "Invoice deleted successfully"}

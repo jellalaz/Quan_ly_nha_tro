@@ -21,7 +21,10 @@ import {
   EditOutlined, 
   CheckOutlined,
   FilePdfOutlined,
-  EyeOutlined
+  EyeOutlined,
+  DeleteOutlined,
+  FilterOutlined,
+  ReloadOutlined
 } from '@ant-design/icons';
 import { useSearchParams } from 'react-router-dom';
 import { invoiceService } from '../services/invoiceService';
@@ -54,6 +57,12 @@ const Invoices = () => {
   const [previousElectricityNum, setPreviousElectricityNum] = useState(0);
   const [roomsAll, setRoomsAll] = useState([]);
   const [housesAll, setHousesAll] = useState([]);
+
+  // Filters
+  const [filterMonth, setFilterMonth] = useState(null); // dayjs
+  const [filterHouseId, setFilterHouseId] = useState(null);
+  const [filterRoomId, setFilterRoomId] = useState(null);
+  const [filterPaid, setFilterPaid] = useState(null); // null | true | false
 
   const contractId = searchParams.get('contract');
 
@@ -119,10 +128,19 @@ const Invoices = () => {
     }
   };
 
+  const buildFilters = () => {
+    const params = {};
+    if (filterMonth) params.month = filterMonth.format('YYYY-MM');
+    if (filterHouseId) params.house_id = filterHouseId;
+    if (filterRoomId) params.room_id = filterRoomId;
+    if (filterPaid !== null) params.is_paid = filterPaid;
+    return params;
+  };
+
   const fetchAllInvoices = async () => {
     setLoading(true);
     try {
-      const data = await invoiceService.getAll();
+      const data = await invoiceService.getAll(buildFilters());
       setInvoices(data);
     } catch (error) {
       message.error('Lỗi khi tải danh sách hóa đơn!');
@@ -243,6 +261,20 @@ const Invoices = () => {
       }
     } catch (error) {
       message.error('Lỗi khi thanh toán!');
+    }
+  };
+
+  const handleDelete = async (id) => {
+    try {
+      await invoiceService.delete(id);
+      message.success('Đã xóa hóa đơn!');
+      if (contractId) {
+        fetchInvoicesByContract(contractId);
+      } else {
+        fetchAllInvoices();
+      }
+    } catch (error) {
+      message.error('Lỗi khi xóa hóa đơn!');
     }
   };
 
@@ -527,7 +559,7 @@ const Invoices = () => {
       title: 'Hành động',
       key: 'action',
       align: 'center',
-      width: 300,
+      width: 360,
       render: (_, record) => (
         <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 8 }}>
           <Button
@@ -563,41 +595,138 @@ const Invoices = () => {
               </Button>
             </Popconfirm>
           )}
+          <Popconfirm
+            title="Bạn có chắc muốn xóa hóa đơn này?"
+            onConfirm={() => handleDelete(record.invoice_id)}
+            okText="Xóa"
+            okButtonProps={{ danger: true }}
+            cancelText="Hủy"
+          >
+            <Button type="link" danger icon={<DeleteOutlined />}>Xóa</Button>
+          </Popconfirm>
         </div>
       ),
     },
   ];
+
+  const filteredRooms = useMemo(() => {
+    if (!filterHouseId) return roomsAll;
+    return roomsAll.filter(r => r.house_id === filterHouseId);
+  }, [roomsAll, filterHouseId]);
+
+  const resetFilters = () => {
+    setFilterMonth(null);
+    setFilterHouseId(null);
+    setFilterRoomId(null);
+    setFilterPaid(null);
+  };
 
   return (
     <div>
       <Card
         title={`Quản lý hóa đơn${contractId ? ` - ${contracts.find(c => c.rr_id === Number(contractId))?.tenant_name}` : ''}`}
         extra={
-          <Space>
-            <Select
-              placeholder="Chọn hợp đồng"
-              style={{ width: 250 }}
-              allowClear
-              onChange={(value) => {
-                if (value) {
-                  setSearchParams({ contract: value });
-                } else {
-                  setSearchParams({});
-                }
-              }}
-            >
-              {contracts.map(contract => (
-                <Option key={contract.rr_id} value={contract.rr_id}>
-                  {contract.tenant_name} - {contract.room?.name || roomsMap[contract.room_id]?.name || 'N/A'}
-                </Option>
-              ))}
-            </Select>
+          <Space wrap>
             <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
               Tạo hóa đơn mới
             </Button>
           </Space>
         }
       >
+        <Card size="small" style={{ marginBottom: 16 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {/* Filter Row */}
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end', flexWrap: 'nowrap' }}>
+              <div style={{ flex: '1 1 180px', minWidth: '150px' }}>
+                <div style={{ color: '#888', marginBottom: '8px', fontSize: '13px' }}>Tháng</div>
+                <DatePicker
+                  picker="month"
+                  style={{ width: '100%' }}
+                  placeholder="Chọn tháng"
+                  value={filterMonth}
+                  onChange={setFilterMonth}
+                  allowClear
+                />
+              </div>
+
+              <div style={{ flex: '1 1 200px', minWidth: '150px' }}>
+                <div style={{ color: '#888', marginBottom: '8px', fontSize: '13px' }}>Nhà trọ</div>
+                <Select
+                  placeholder="Chọn nhà trọ"
+                  allowClear
+                  value={filterHouseId}
+                  onChange={(v) => { const nv = v ?? null; setFilterHouseId(nv); if (nv === null) setFilterRoomId(null); }}
+                  style={{ width: '100%' }}
+                >
+                  {housesAll.map(h => (
+                    <Option key={h.house_id} value={h.house_id}>{h.name}</Option>
+                  ))}
+                </Select>
+              </div>
+
+              <div style={{ flex: '1 1 200px', minWidth: '150px' }}>
+                <div style={{ color: '#888', marginBottom: '8px', fontSize: '13px' }}>Phòng</div>
+                <Select
+                  placeholder="Chọn phòng"
+                  allowClear
+                  value={filterRoomId}
+                  onChange={(v) => setFilterRoomId(v ?? null)}
+                  style={{ width: '100%' }}
+                  disabled={!filterHouseId}
+                >
+                  {filteredRooms.map(r => (
+                    <Option key={r.room_id} value={r.room_id}>{r.name}</Option>
+                  ))}
+                </Select>
+              </div>
+
+              <div style={{ flex: '1 1 180px', minWidth: '150px' }}>
+                <div style={{ color: '#888', marginBottom: '8px', fontSize: '13px' }}>Trạng thái</div>
+                <Select
+                  placeholder="Tất cả"
+                  allowClear
+                  value={filterPaid === null ? undefined : filterPaid}
+                  onChange={(v) => setFilterPaid(typeof v === 'boolean' ? v : null)}
+                  style={{ width: '100%' }}
+                  options={[
+                    { label: 'Đã thanh toán', value: true },
+                    { label: 'Chưa thanh toán', value: false },
+                  ]}
+                />
+              </div>
+
+              <div style={{ flex: '1 1 240px', minWidth: '180px' }}>
+                <div style={{ color: '#888', marginBottom: '8px', fontSize: '13px' }}>Chọn hợp đồng</div>
+                <Select
+                  placeholder="Chọn hợp đồng"
+                  allowClear
+                  style={{ width: '100%' }}
+                  value={contractId ? Number(contractId) : undefined}
+                  onChange={(value) => {
+                    if (value) {
+                      setSearchParams({ contract: value });
+                    } else {
+                      setSearchParams({});
+                    }
+                  }}
+                >
+                  {contracts.map(contract => (
+                    <Option key={contract.rr_id} value={contract.rr_id}>
+                      {contract.tenant_name} - {contract.room?.name || roomsMap[contract.room_id]?.name || 'N/A'}
+                    </Option>
+                  ))}
+                </Select>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <Button icon={<ReloadOutlined />} onClick={resetFilters}>Xóa lọc</Button>
+              <Button type="primary" icon={<FilterOutlined />} onClick={fetchAllInvoices}>Lọc</Button>
+            </div>
+          </div>
+        </Card>
+
         <Table
           columns={columns}
           dataSource={invoices}
