@@ -23,7 +23,6 @@ import {
   FilePdfOutlined,
   EyeOutlined,
   DeleteOutlined,
-  FilterOutlined,
   ReloadOutlined
 } from '@ant-design/icons';
 import { useSearchParams } from 'react-router-dom';
@@ -621,6 +620,13 @@ const Invoices = () => {
     setFilterPaid(null);
   };
 
+  // Auto-fetch when filters change
+  useEffect(() => {
+    if (!contractId) {
+      fetchAllInvoices();
+    }
+  }, [filterMonth, filterHouseId, filterRoomId, filterPaid]);
+
   return (
     <div>
       <Card
@@ -644,7 +650,7 @@ const Invoices = () => {
                   style={{ width: '100%' }}
                   placeholder="Chọn tháng"
                   value={filterMonth}
-                  onChange={setFilterMonth}
+                  onChange={(value) => setFilterMonth(value)}
                   allowClear
                 />
               </div>
@@ -721,8 +727,7 @@ const Invoices = () => {
 
             {/* Action Buttons */}
             <div style={{ display: 'flex', gap: '8px' }}>
-              <Button icon={<ReloadOutlined />} onClick={resetFilters}>Xóa lọc</Button>
-              <Button type="primary" icon={<FilterOutlined />} onClick={fetchAllInvoices}>Lọc</Button>
+              <Button type="primary" icon={<ReloadOutlined />} onClick={resetFilters}>Xóa bộ lọc</Button>
             </div>
           </div>
         </Card>

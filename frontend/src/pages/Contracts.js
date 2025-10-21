@@ -20,7 +20,8 @@ import {
   PlusOutlined, 
   EditOutlined, 
   DeleteOutlined,
-  FileTextOutlined
+  FileTextOutlined,
+  ReloadOutlined
 } from '@ant-design/icons';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { rentedRoomService } from '../services/rentedRoomService';
@@ -216,6 +217,7 @@ const Contracts = () => {
       startDate: null,
       endDate: null,
     });
+    setRooms([]);
     setSearchParams({});
     fetchAllContracts();
   };
@@ -373,100 +375,116 @@ const Contracts = () => {
           </Button>
         }
       >
-        <div style={{ marginBottom: 16 }}>
-          <Row gutter={[8, 8]}>
-            <Col span={4}>
-              <Select
-                placeholder="Chọn nhà trọ"
-                style={{ width: '100%' }}
-                allowClear
-                onChange={(value) => {
-                  if (value) {
-                    fetchRooms(value);
-                    handleFilterChange({ houseId: value });
-                  } else {
-                    setRooms([]);
-                    handleFilterChange({ houseId: null });
-                  }
-                }}
-              >
-                {houses.map(house => (
-                  <Option key={house.house_id} value={house.house_id}>
-                    {house.name}
-                  </Option>
-                ))}
-              </Select>
-            </Col>
-            <Col span={4}>
-              <Select
-                placeholder="Chọn phòng"
-                style={{ width: '100%' }}
-                allowClear
-                disabled={!rooms.length}
-                onChange={(value) => {
-                  if (value) {
-                    setSearchParams({ room: value });
-                    handleFilterChange({ roomId: value });
-                  } else {
-                    setSearchParams({});
-                    handleFilterChange({ roomId: null });
-                  }
-                }}
-              >
-                {rooms.map(room => (
-                  <Option key={room.room_id} value={room.room_id}>
-                    {room.name}
-                  </Option>
-                ))}
-              </Select>
-            </Col>
-            <Col span={4}>
-              <Input
-                placeholder="Tên khách thuê"
-                value={filters.tenantName}
-                onChange={(e) => handleFilterChange({ tenantName: e.target.value })}
-              />
-            </Col>
-            <Col span={4}>
-              <Select
-                placeholder="Trạng thái"
-                style={{ width: '100%' }}
-                allowClear
-                value={filters.status}
-                onChange={(value) => handleFilterChange({ status: value })}
-              >
-                <Option value="active">Đang thuê</Option>
-                <Option value="inactive">Đã kết thúc</Option>
-              </Select>
-            </Col>
-            <Col span={4}>
-              <DatePicker
-                placeholder="Ngày bắt đầu"
-                style={{ width: '100%' }}
-                value={filters.startDate}
-                onChange={(date) => handleFilterChange({ startDate: date })}
-              />
-            </Col>
-            <Col span={4}>
-              <DatePicker
-                placeholder="Ngày kết thúc"
-                style={{ width: '100%' }}
-                value={filters.endDate}
-                onChange={(date) => handleFilterChange({ endDate: date })}
-              />
-            </Col>
-          </Row>
-          <Row style={{ marginTop: 8 }}>
-            <Col span={24}>
-              <Button
-                type="primary"
-                onClick={handleClearFilters}
-              >
+        <Card size="small" style={{ marginBottom: 16 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {/* Filter Row */}
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end', flexWrap: 'nowrap' }}>
+              <div style={{ flex: '1 1 200px', minWidth: '150px' }}>
+                <div style={{ color: '#888', marginBottom: '8px', fontSize: '13px' }}>Nhà trọ</div>
+                <Select
+                  placeholder="Chọn nhà trọ"
+                  style={{ width: '100%' }}
+                  allowClear
+                  value={filters.houseId}
+                  onChange={(value) => {
+                    if (value) {
+                      fetchRooms(value);
+                      handleFilterChange({ houseId: value, roomId: null });
+                    } else {
+                      setRooms([]);
+                      handleFilterChange({ houseId: null, roomId: null });
+                    }
+                  }}
+                >
+                  {houses.map(house => (
+                    <Option key={house.house_id} value={house.house_id}>
+                      {house.name}
+                    </Option>
+                  ))}
+                </Select>
+              </div>
+
+              <div style={{ flex: '1 1 200px', minWidth: '150px' }}>
+                <div style={{ color: '#888', marginBottom: '8px', fontSize: '13px' }}>Phòng</div>
+                <Select
+                  placeholder="Chọn phòng"
+                  style={{ width: '100%' }}
+                  allowClear
+                  disabled={!filters.houseId}
+                  value={filters.roomId}
+                  onChange={(value) => {
+                    if (value) {
+                      setSearchParams({ room: value });
+                      handleFilterChange({ roomId: value });
+                    } else {
+                      setSearchParams({});
+                      handleFilterChange({ roomId: null });
+                    }
+                  }}
+                >
+                  {rooms.map(room => (
+                    <Option key={room.room_id} value={room.room_id}>
+                      {room.name}
+                    </Option>
+                  ))}
+                </Select>
+              </div>
+
+              <div style={{ flex: '1 1 200px', minWidth: '150px' }}>
+                <div style={{ color: '#888', marginBottom: '8px', fontSize: '13px' }}>Tên khách thuê</div>
+                <Input
+                  placeholder="Nhập tên khách thuê"
+                  value={filters.tenantName}
+                  onChange={(e) => handleFilterChange({ tenantName: e.target.value })}
+                  allowClear
+                />
+              </div>
+
+              <div style={{ flex: '1 1 180px', minWidth: '150px' }}>
+                <div style={{ color: '#888', marginBottom: '8px', fontSize: '13px' }}>Trạng thái</div>
+                <Select
+                  placeholder="Tất cả"
+                  style={{ width: '100%' }}
+                  allowClear
+                  value={filters.status}
+                  onChange={(value) => handleFilterChange({ status: value })}
+                >
+                  <Option value="active">Đang thuê</Option>
+                  <Option value="inactive">Đã kết thúc</Option>
+                </Select>
+              </div>
+
+              <div style={{ flex: '1 1 180px', minWidth: '150px' }}>
+                <div style={{ color: '#888', marginBottom: '8px', fontSize: '13px' }}>Ngày bắt đầu</div>
+                <DatePicker
+                  placeholder="Chọn ngày"
+                  style={{ width: '100%' }}
+                  value={filters.startDate}
+                  onChange={(date) => handleFilterChange({ startDate: date })}
+                  allowClear
+                />
+              </div>
+
+              <div style={{ flex: '1 1 180px', minWidth: '150px' }}>
+                <div style={{ color: '#888', marginBottom: '8px', fontSize: '13px' }}>Ngày kết thúc</div>
+                <DatePicker
+                  placeholder="Chọn ngày"
+                  style={{ width: '100%' }}
+                  value={filters.endDate}
+                  onChange={(date) => handleFilterChange({ endDate: date })}
+                  allowClear
+                />
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <Button type="primary" icon={<ReloadOutlined />} onClick={handleClearFilters}>
                 Xóa bộ lọc
               </Button>
-            </Col>
-          </Row>
-        </div>
+            </div>
+          </div>
+        </Card>
 
         <Table
           columns={columns}
