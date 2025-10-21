@@ -1,21 +1,12 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from .core.database import engine
-from .models import user, house, room, asset, rented_room, invoice
+from .core.database import engine, Base
+# Ensure models are imported so SQLAlchemy registers all tables before create_all
+from .models import user, house, room, asset, rented_room, invoice  # noqa: F401
 from .api.v2.api import api_router
-# Ensure Pydantic schemas forward refs are resolved at startup
-from . import schemas  # noqa: F401
-
-# Import all models to ensure they are registered
-user.User
-house.House
-room.Room
-asset.Asset
-rented_room.RentedRoom
-invoice.Invoice
 
 # Create database tables
-user.Base.metadata.create_all(bind=engine)
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Room Management API", version="2.0.0")
 

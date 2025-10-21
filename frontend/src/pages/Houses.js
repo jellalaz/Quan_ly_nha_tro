@@ -7,10 +7,9 @@ import {
   Form,
   Input,
   InputNumber,
-  App, // Import App
+  App,
   Space,
-  Popconfirm,
-  Tag
+  Popconfirm
 } from 'antd';
 import {
   PlusOutlined,

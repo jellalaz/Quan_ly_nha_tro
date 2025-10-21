@@ -8,7 +8,6 @@ from app.crud import room as room_crud
 from app.core.security import get_current_active_user
 from app.schemas.user import User
 from app.models.rented_room import RentedRoom
-from sqlalchemy import true, false
 
 router = APIRouter()
 

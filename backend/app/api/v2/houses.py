@@ -9,7 +9,6 @@ from app.schemas.user import User
 from app.crud import house as house_crud
 from app.models.room import Room
 from app.models.rented_room import RentedRoom
-from sqlalchemy import true, false
 
 router = APIRouter()
 

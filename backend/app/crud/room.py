@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from typing import List, Optional
+from typing import List
 from app.models.room import Room
 from app.models.house import House
 from app.schemas.room import RoomCreate, RoomUpdate
