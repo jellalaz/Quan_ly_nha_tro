@@ -4,8 +4,8 @@ from typing import List
 from sqlalchemy.exc import IntegrityError
 
 from app.core.database import get_db
-from app.core.security import get_current_active_user
-from app.schemas.user import User, UserCreate, UserUpdate, Role
+from app.core.security import get_current_active_user, verify_password, get_password_hash
+from app.schemas.user import User, UserCreate, UserUpdate, Role, PasswordChange
 from app.models.user import User as UserModel
 from app.crud import user as user_crud
 
@@ -65,3 +65,20 @@ async def update_users_me(
 def get_roles(db: Session = Depends(get_db)):
     """Get all available roles"""
     return user_crud.get_roles(db)
+
+# Endpoint đổi mật khẩu cho người dùng hiện tại
+@router.post("/me/change-password")
+async def change_password(
+    payload: PasswordChange,
+    db: Session = Depends(get_db),
+    current_user: UserModel = Depends(get_current_active_user)
+):
+    # Kiểm tra mật khẩu hiện tại có đúng không
+    if not verify_password(payload.old_password, current_user.password):
+        raise HTTPException(status_code=400, detail="Mật khẩu hiện tại không đúng")
+
+    # Cập nhật mật khẩu mới đã băm
+    current_user.password = get_password_hash(payload.new_password)
+    db.add(current_user)
+    db.commit()
+    return {"message": "Đổi mật khẩu thành công"}

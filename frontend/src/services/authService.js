@@ -37,6 +37,15 @@ export const authService = {
         return updatedUser;
     },
 
+    // Đổi mật khẩu người dùng hiện tại
+    changePassword: async(oldPassword, newPassword) => {
+        const response = await api.post('/users/me/change-password', {
+            old_password: oldPassword,
+            new_password: newPassword,
+        });
+        return response.data;
+    },
+
     logout: () => {
         localStorage.removeItem('access_token');
         localStorage.removeItem('user_info');

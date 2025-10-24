@@ -30,26 +30,22 @@ api.interceptors.response.use(
     return response;
   },
   (error) => {
-    const message = error?.config?.message;
+    // Lấy status và URL request để xử lý đặc biệt cho /auth/login
+    const status = error?.response?.status;
+    const requestUrl = error?.config?.url || '';
 
-    if (message) {
-      const detail = error?.response?.data?.detail || error?.response?.data?.message || 'Đã có lỗi xảy ra!';
-      message.error(detail);
-    } else {
-      console.log('API Error Interceptor:', error);
-      console.log('Error response:', error?.response);
-      console.log('Error data:', error?.response?.data);
-
-      const status = error?.response?.status;
-      console.log('Status:', status);
-
-      // Only handle 401 for logout
-      if (status === 401) {
-        localStorage.removeItem('access_token');
-        window.location.href = '/login';
+    // 401: Nếu là login thì KHÔNG redirect, để màn hình login hiển thị message lỗi
+    if (status === 401) {
+      if (requestUrl.includes('/auth/login')) {
+        return Promise.reject(error);
       }
+      // Các request khác: xóa token và điều hướng về /login
+      localStorage.removeItem('access_token');
+      window.location.href = '/login';
+      return Promise.reject(error);
     }
 
+    // Các lỗi khác: để caller tự hiển thị message phù hợp (giống Houses/Rooms pattern)
     return Promise.reject(error);
   }
 );

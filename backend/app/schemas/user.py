@@ -97,3 +97,27 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     email: Optional[str] = None
+
+# Schema đổi mật khẩu cho người dùng hiện tại
+class PasswordChange(BaseModel):
+    # Mật khẩu hiện tại để xác thực
+    old_password: str
+    # Mật khẩu mới
+    new_password: str
+
+    # Validate độ mạnh của mật khẩu mới (giống UserCreate.password)
+    @field_validator('new_password')
+    @classmethod
+    def validate_new_password(cls, v: str):
+        pwd = v or ""
+        if len(pwd) < 8:
+            raise ValueError("Mật khẩu quá yếu: tối thiểu 8 ký tự")
+        if not re.search(r"[A-Z]", pwd):
+            raise ValueError("Mật khẩu phải có ít nhất 1 chữ hoa (A-Z)")
+        if not re.search(r"[a-z]", pwd):
+            raise ValueError("Mật khẩu phải có ít nhất 1 chữ thường (a-z)")
+        if not re.search(r"\d", pwd):
+            raise ValueError("Mật khẩu phải có ít nhất 1 chữ số (0-9)")
+        if not re.search(r"[^A-Za-z0-9]", pwd):
+            raise ValueError("Mật khẩu phải có ít nhất 1 ký tự đặc biệt (ví dụ: !@#$%)")
+        return v

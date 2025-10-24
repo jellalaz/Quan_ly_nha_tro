@@ -1,15 +1,19 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Form, Input, Button, Typography, Descriptions, message } from 'antd';
-import { UserOutlined, MailOutlined, PhoneOutlined } from '@ant-design/icons';
+import { Card, Form, Input, Button, Typography, Descriptions, App } from 'antd';
+import { UserOutlined, MailOutlined, PhoneOutlined, LockOutlined } from '@ant-design/icons';
 import { authService } from '../services/authService';
 
 const { Title } = Typography;
 
 const Profile = () => {
   const [form] = Form.useForm();
+  const [pwdForm] = Form.useForm();
   const [loading, setLoading] = useState(false);
+  const [pwdLoading, setPwdLoading] = useState(false);
   const [user, setUser] = useState(null);
+  const { message } = App.useApp(); // Dùng message từ App context để hiển thị thông báo
 
+  // Tải thông tin người dùng hiện tại
   const loadUser = async () => {
     try {
       const u = await authService.getCurrentUser();
@@ -29,13 +33,14 @@ const Profile = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Lưu thay đổi thông tin (email KHÔNG cho phép chỉnh sửa)
   const onFinish = async (values) => {
     setLoading(true);
     try {
+      // Không gửi email lên server để tránh bị cập nhật
       await authService.updateProfile({
         fullname: values.fullname,
         phone: values.phone,
-        email: values.email,
       });
       message.success('Cập nhật thông tin thành công');
       await loadUser();
@@ -48,18 +53,9 @@ const Profile = () => {
         message.error(msgs.join('\n') || 'Dữ liệu không hợp lệ');
       } else if (status === 400) {
         const detail = typeof data?.detail === 'string' ? data.detail : '';
-        if (detail === 'Email already registered') {
-          message.error('Email đã được sử dụng.');
-          form.setFields([{ name: 'email', errors: ['Email đã được sử dụng.'] }]);
-        } else if (detail === 'Phone already registered') {
+        if (detail === 'Phone already registered') {
           message.error('Số điện thoại đã được sử dụng.');
           form.setFields([{ name: 'phone', errors: ['Số điện thoại đã được sử dụng.'] }]);
-        } else if (detail === 'Email or Phone already registered') {
-          message.error('Email hoặc số điện thoại đã tồn tại.');
-          form.setFields([
-            { name: 'email', errors: ['Email hoặc số điện thoại đã tồn tại.'] },
-            { name: 'phone', errors: ['Email hoặc số điện thoại đã tồn tại.'] },
-          ]);
         } else {
           message.error(detail || 'Cập nhật thất bại');
         }
@@ -71,10 +67,33 @@ const Profile = () => {
     }
   };
 
+  // Đổi mật khẩu
+  const onChangePassword = async (values) => {
+    setPwdLoading(true);
+    try {
+      await authService.changePassword(values.old_password, values.new_password);
+      message.success('Đổi mật khẩu thành công');
+      pwdForm.resetFields();
+    } catch (err) {
+      const detail = err?.response?.data?.detail;
+      if (typeof detail === 'string') {
+        message.error(detail);
+      } else if (Array.isArray(err?.response?.data?.detail)) {
+        const msgs = err.response.data.detail.map((e) => e.msg).filter(Boolean);
+        message.error(msgs.join('\n') || 'Đổi mật khẩu thất bại');
+      } else {
+        message.error('Đổi mật khẩu thất bại');
+      }
+    } finally {
+      setPwdLoading(false);
+    }
+  };
+
   return (
     <div>
       <Title level={3}>Thông tin cá nhân</Title>
 
+      {/* Thông tin tổng quan người dùng */}
       {user && (
         <Card style={{ marginBottom: 24 }}>
           <Descriptions column={1} bordered size="small">
@@ -88,7 +107,8 @@ const Profile = () => {
         </Card>
       )}
 
-      <Card title="Chỉnh sửa thông tin">
+      <Card title="Chỉnh sửa thông tin" style={{ marginBottom: 24 }}>
+        {/* Form chỉnh sửa thông tin: KHÔNG cho phép sửa email */}
         <Form layout="vertical" form={form} onFinish={onFinish}>
           <Form.Item
             name="fullname"
@@ -108,15 +128,65 @@ const Profile = () => {
 
           <Form.Item
             name="email"
-            label="Email"
-            rules={[{ required: true, message: 'Vui lòng nhập email' }, { type: 'email', message: 'Email không hợp lệ' }]}
+            label="Email (không thể chỉnh sửa)"
           >
-            <Input prefix={<MailOutlined />} placeholder="Email" />
+            <Input prefix={<MailOutlined />} placeholder="Email" disabled readOnly />
           </Form.Item>
 
           <Form.Item>
             <Button type="primary" htmlType="submit" loading={loading}>
               Lưu thay đổi
+            </Button>
+          </Form.Item>
+        </Form>
+      </Card>
+
+      <Card title="Đổi mật khẩu">
+        {/* Form đổi mật khẩu */}
+        <Form layout="vertical" form={pwdForm} onFinish={onChangePassword}>
+          <Form.Item
+            name="old_password"
+            label="Mật khẩu hiện tại"
+            rules={[{ required: true, message: 'Vui lòng nhập mật khẩu hiện tại' }]}
+          >
+            <Input.Password prefix={<LockOutlined />} placeholder="Mật khẩu hiện tại" />
+          </Form.Item>
+
+          <Form.Item
+            name="new_password"
+            label="Mật khẩu mới"
+            rules={[
+              { required: true, message: 'Vui lòng nhập mật khẩu mới' },
+              { min: 8, message: 'Tối thiểu 8 ký tự' },
+              // Gợi ý quy tắc mạnh hơn để phù hợp với backend
+              { pattern: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).+$/, message: 'Phải có chữ hoa, chữ thường, số và ký tự đặc biệt' },
+            ]}
+          >
+            <Input.Password prefix={<LockOutlined />} placeholder="Mật khẩu mới" />
+          </Form.Item>
+
+          <Form.Item
+            name="confirm_password"
+            label="Nhập lại mật khẩu mới"
+            dependencies={["new_password"]}
+            rules={[
+              { required: true, message: 'Vui lòng nhập lại mật khẩu mới' },
+              ({ getFieldValue }) => ({
+                validator(_, value) {
+                  if (!value || getFieldValue('new_password') === value) {
+                    return Promise.resolve();
+                  }
+                  return Promise.reject(new Error('Mật khẩu nhập lại không khớp'));
+                },
+              }),
+            ]}
+          >
+            <Input.Password prefix={<LockOutlined />} placeholder="Nhập lại mật khẩu mới" />
+          </Form.Item>
+
+          <Form.Item>
+            <Button type="primary" htmlType="submit" loading={pwdLoading}>
+              Đổi mật khẩu
             </Button>
           </Form.Item>
         </Form>
