@@ -5,30 +5,12 @@ from sqlalchemy.exc import IntegrityError
 
 from app.core.database import get_db
 from app.core.security import get_current_active_user, verify_password, get_password_hash
-from app.schemas.user import User, UserCreate, UserUpdate, Role, PasswordChange
+from app.schemas.user import User, UserUpdate, Role, PasswordChange
 from app.models.user import User as UserModel
 from app.crud import user as user_crud
 
 router = APIRouter()
 
-@router.post("/register", response_model=User)
-async def register_user(user: UserCreate, db: Session = Depends(get_db)):
-    """
-    Create new user account.
-    """
-    db_user = user_crud.get_user_by_email(db, email=user.email)
-    if db_user:
-        raise HTTPException(status_code=400, detail="Email already registered")
-    # Check phone duplication
-    db_phone_user = user_crud.get_user_by_phone(db, phone=user.phone)
-    if db_phone_user:
-        raise HTTPException(status_code=400, detail="Phone already registered")
-    try:
-        return user_crud.create_user(db=db, user=user)
-    except IntegrityError:
-        db.rollback()
-        # In case of race condition or DB unique constraint violation
-        raise HTTPException(status_code=400, detail="Email or Phone already registered")
 
 @router.get("/me", response_model=User)
 async def read_users_me(

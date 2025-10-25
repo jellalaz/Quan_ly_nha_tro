@@ -75,8 +75,10 @@ const Houses = () => {
       message.success('Xóa nhà trọ thành công!');
       fetchHouses();
     } catch (error) {
-      // Error is now handled by the interceptor
       console.error('Delete house error:', error);
+      // Display error message from backend or default message
+      const errorMessage = error.response?.data?.detail || 'Lỗi khi xóa nhà trọ!';
+      message.error(errorMessage);
     }
   };
 

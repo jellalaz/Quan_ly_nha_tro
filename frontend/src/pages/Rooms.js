@@ -135,8 +135,10 @@ const Rooms = () => {
         fetchAllRooms();
       }
     } catch (error) {
-      // Error message is handled by the service/interceptor now
       console.error('Delete room error:', error);
+      // Display error message from backend or default message
+      const errorMessage = error.response?.data?.detail || 'Lỗi khi xóa phòng!';
+      message.error(errorMessage);
     }
   };
 
