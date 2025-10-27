@@ -141,7 +141,7 @@ const Reports = () => {
 
       {/* Revenue Statistics */}
       <Row gutter={16} style={{ marginBottom: 24 }}>
-        <Col span={12}>
+        <Col span={10}>
           <Card title="Thống kê doanh thu" extra={
             <Space size={8}>
               <DatePicker
@@ -198,7 +198,7 @@ const Reports = () => {
             </Row>
           </Card>
         </Col>
-        <Col span={12}>
+        <Col span={14}>
           <Card title="AI Phân tích doanh thu" extra={
             <Button
               type="primary"
@@ -213,7 +213,7 @@ const Reports = () => {
               <div style={{
                 fontSize: '14px',
                 lineHeight: '1.8',
-                maxHeight: '200px',
+                maxHeight: '550px',
                 overflowY: 'auto',
                 padding: '12px',
                 backgroundColor: '#f9f9f9',
