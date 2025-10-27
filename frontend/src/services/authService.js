@@ -34,7 +34,7 @@ export const authService = {
 
     // Đổi mật khẩu người dùng hiện tại
     changePassword: async(oldPassword, newPassword) => {
-        const response = await api.post('/users/me/change-password', {
+        const response = await api.patch('/users/me/password', {
             old_password: oldPassword,
             new_password: newPassword,
         });

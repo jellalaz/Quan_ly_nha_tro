@@ -49,7 +49,7 @@ def get_roles(db: Session = Depends(get_db)):
     return user_crud.get_roles(db)
 
 # Endpoint đổi mật khẩu cho người dùng hiện tại
-@router.post("/me/change-password")
+@router.patch("/me/password")
 async def change_password(
     payload: PasswordChange,
     db: Session = Depends(get_db),
