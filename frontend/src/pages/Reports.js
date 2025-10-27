@@ -6,9 +6,9 @@ import {
   Statistic,
   DatePicker,
   Button,
-  message,
+  // message,
   Space,
-  Typography
+  Typography, App
 } from 'antd';
 import {
   DollarOutlined,
@@ -28,6 +28,7 @@ const Reports = () => {
   const [revenueStats, setRevenueStats] = useState({});
   const [aiReport, setAiReport] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
+  const { message } = App.useApp();
 
   // Start/End dates for reports
   const [startDate, setStartDate] = useState(dayjs().subtract(30, 'days'));
@@ -280,5 +281,6 @@ const Reports = () => {
     </div>
   );
 };
+
 
 export default Reports;
