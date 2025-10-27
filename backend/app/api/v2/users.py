@@ -11,19 +11,19 @@ from app.crud import user as user_crud
 
 router = APIRouter()
 
-
+# Lấy thông tin người dùng hiện tại
 @router.get("/me", response_model=User)
 async def read_users_me(
     current_user: UserModel = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
-    # Ensure role is loaded
+    # Nếu chưa load vai trò, thì load lại từ DB
     if not hasattr(current_user, 'role') or current_user.role is None:
         db.refresh(current_user, ['role'])
     return current_user
 
-# New: Update current user's profile
-@router.put("/me", response_model=User)
+# Cập nhật thông tin người dùng hiện tại (PATCH vì chỉ cập nhật một phần)
+@router.patch("/me", response_model=User)
 async def update_users_me(
     user_update: UserUpdate,
     db: Session = Depends(get_db),
@@ -43,12 +43,13 @@ async def update_users_me(
         db.rollback()
         raise HTTPException(status_code=400, detail="Email or Phone already registered")
 
+# Lấy danh sách vai trò
 @router.get("/roles", response_model=List[Role])
 def get_roles(db: Session = Depends(get_db)):
     """Get all available roles"""
     return user_crud.get_roles(db)
 
-# Endpoint đổi mật khẩu cho người dùng hiện tại
+# Đổi mật khẩu cho người dùng hiện tại
 @router.patch("/me/password")
 async def change_password(
     payload: PasswordChange,

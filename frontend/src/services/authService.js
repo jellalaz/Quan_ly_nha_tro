@@ -25,7 +25,7 @@ export const authService = {
     },
 
     updateProfile: async(updateData) => {
-        const response = await api.put('/users/me', updateData);
+        const response = await api.patch('/users/me', updateData);
         // Refresh cache
         const updatedUser = response.data;
         localStorage.setItem('user_info', JSON.stringify(updatedUser));

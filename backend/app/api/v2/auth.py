@@ -12,10 +12,7 @@ from app.crud import user as user_crud
 router = APIRouter()
 
 @router.post("/login", response_model=Token)
-async def login_for_access_token(
-    credentials: UserLogin,
-    db: Session = Depends(get_db)
-):
+async def login_for_access_token(credentials: UserLogin,db: Session = Depends(get_db)):
     user = authenticate_user(db, credentials.email, credentials.password)
     if not user:
         raise HTTPException(
