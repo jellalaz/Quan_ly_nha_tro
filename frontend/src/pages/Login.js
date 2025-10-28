@@ -29,84 +29,140 @@ const Login = () => {
       minHeight: '100vh',
       display: 'flex',
       alignItems: 'center',
-      justifyContent: 'center',
+      justifyContent: 'space-between',
+      padding: '40px 60px',
       position: 'relative',
       overflow: 'hidden',
-      background: 'linear-gradient(-45deg, #667eea, #764ba2, #f093fb, #4facfe)',
-      backgroundSize: '400% 400%',
-      animation: 'gradientShift 15s ease infinite'
+      backgroundColor: '#000000'
     }}>
-      <style>
-        {`
-          @keyframes gradientShift {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-          }
-          @keyframes float {
-            0%, 100% { transform: translateY(0) rotate(0deg); opacity: 0.7; }
-            50% { transform: translateY(-20px) rotate(180deg); opacity: 1; }
-          }
-          @keyframes float2 {
-            0%, 100% { transform: translateY(0) translateX(0) rotate(0deg); opacity: 0.5; }
-            33% { transform: translateY(-30px) translateX(20px) rotate(120deg); opacity: 0.8; }
-            66% { transform: translateY(-10px) translateX(-20px) rotate(240deg); opacity: 0.6; }
-          }
-          .bubble {
-            position: absolute;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            pointer-events: none;
-          }
-          .bubble1 {
-            width: 80px;
-            height: 80px;
-            top: 10%;
-            left: 10%;
-            animation: float 6s ease-in-out infinite;
-          }
-          .bubble2 {
-            width: 120px;
-            height: 120px;
-            top: 60%;
-            left: 80%;
-            animation: float2 8s ease-in-out infinite;
-          }
-          .bubble3 {
-            width: 60px;
-            height: 60px;
-            top: 80%;
-            left: 20%;
-            animation: float 7s ease-in-out infinite 1s;
-          }
-          .bubble4 {
-            width: 100px;
-            height: 100px;
-            top: 20%;
-            left: 75%;
-            animation: float2 9s ease-in-out infinite 2s;
-          }
-          .bubble5 {
-            width: 70px;
-            height: 70px;
-            top: 50%;
-            left: 5%;
-            animation: float 5s ease-in-out infinite 1.5s;
-          }
-        `}
-      </style>
-      <div className="bubble bubble1"></div>
-      <div className="bubble bubble2"></div>
-      <div className="bubble bubble3"></div>
-      <div className="bubble bubble4"></div>
-      <div className="bubble bubble5"></div>
-      <Card style={{ width: 400, boxShadow: '0 4px 12px rgba(0,0,0,0.15)', position: 'relative', zIndex: 1 }}>
-        <div style={{ textAlign: 'center', marginBottom: 24 }}>
-          <Title level={2} style={{ color: '#1890ff' }}>
+      {/* 3D Background using iframe to isolate errors */}
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100vw',
+        height: '100vh',
+        zIndex: 0,
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+      }}>
+        <iframe
+          src="https://my.spline.design/r4xbot-OaKDFcUbSxFFfqVeaB8uvzNg/"
+          frameBorder="0"
+          width="100%"
+          height="100%"
+          style={{
+            border: 'none',
+            position: 'absolute',
+            top: 0,
+            left: 0
+          }}
+          title="3D Background"
+        />
+      </div>
+
+      {/* Welcome Text - Left Side */}
+      <div style={{
+        width: '420px',
+        zIndex: 1,
+        color: 'white',
+        textShadow: '2px 2px 12px rgba(0,0,0,0.7)',
+        padding: '40px',
+        backgroundColor: 'rgba(24, 144, 255, 0.55)',
+        borderRadius: '24px',
+        backdropFilter: 'blur(20px)',
+        border: '1px solid rgba(255, 255, 255, 0.4)',
+        boxShadow: '0 12px 48px rgba(24, 144, 255, 0.2)'
+      }}>
+        <h1 style={{
+          fontSize: '42px',
+          fontWeight: '700',
+          marginBottom: '24px',
+          color: '#ffffff',
+          lineHeight: '1.2',
+          letterSpacing: '-1px',
+          textShadow: '3px 3px 15px rgba(0,0,0,0.8)'
+        }}>
+          Quản lý<br />Nhà trọ Thông minh
+        </h1>
+        <p style={{
+          fontSize: '22px',
+          marginBottom: '36px',
+          color: '#ffffff',
+          lineHeight: '1.6',
+          fontWeight: '400',
+          textShadow: '2px 2px 10px rgba(0,0,0,0.7)'
+        }}>
+          Giải pháp quản lý toàn diện cho chủ nhà trọ
+        </p>
+        <div style={{
+          fontSize: '20px',
+          color: '#ffffff',
+          lineHeight: '2'
+        }}>
+          <div style={{
+            marginBottom: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px'
+          }}>
+            <span style={{ fontSize: '24px' }}>✓</span>
+            <span>Quản lý phòng & hợp đồng</span>
+          </div>
+          <div style={{
+            marginBottom: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px'
+          }}>
+            <span style={{ fontSize: '24px' }}>✓</span>
+            <span>Tính hóa đơn tự động</span>
+          </div>
+          <div style={{
+            marginBottom: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px'
+          }}>
+            <span style={{ fontSize: '24px' }}>✓</span>
+            <span>Theo dõi tài sản</span>
+          </div>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px'
+          }}>
+            <span style={{ fontSize: '24px' }}>✓</span>
+            <span>Báo cáo doanh thu</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Login Card - Right Side */}
+      <Card style={{
+        width: 500,
+        boxShadow: '0 12px 48px rgba(0,0,0,0.3)',
+        zIndex: 1,
+        position: 'relative',
+        backgroundColor: 'rgba(255, 255, 255, 0.15)',
+        backdropFilter: 'blur(20px)',
+        borderRadius: '24px',
+        border: '1px solid rgba(255, 255, 255, 0.4)',
+        padding: '40px 30px'
+      }}>
+        <div style={{ textAlign: 'center', marginBottom: 40 }}>
+          <Title level={2} style={{
+            color: '#1890ff',
+            marginBottom: '16px',
+            fontSize: '42px',
+            fontWeight: '600'
+          }}>
             Quản lý nhà trọ
           </Title>
-          <p style={{ color: '#666', marginBottom: 0 }}>
+          <p style={{
+            color: '#666',
+            marginBottom: 0,
+            fontSize: '20px'
+          }}>
             Đăng nhập vào hệ thống
           </p>
         </div>
@@ -125,8 +181,13 @@ const Login = () => {
             ]}
           >
             <Input 
-              prefix={<UserOutlined />} 
-              placeholder="Email" 
+              prefix={<UserOutlined style={{ fontSize: '22px' }} />}
+              placeholder="Email"
+              style={{
+                fontSize: '20px',
+                padding: '16px 20px',
+                height: '60px'
+              }}
             />
           </Form.Item>
 
@@ -135,25 +196,39 @@ const Login = () => {
             rules={[{ required: true, message: 'Vui lòng nhập mật khẩu!' }]}
           >
             <Input.Password
-              prefix={<LockOutlined />}
+              prefix={<LockOutlined style={{ fontSize: '22px' }} />}
               placeholder="Mật khẩu"
+              style={{
+                fontSize: '20px',
+                padding: '16px 20px',
+                height: '60px'
+              }}
             />
           </Form.Item>
 
-          <Form.Item>
-            <Button 
+          <Form.Item style={{ marginTop: '32px' }}>
+            <Button
               type="primary" 
               htmlType="submit" 
               loading={loading}
-              style={{ width: '100%' }}
+              style={{
+                width: '100%',
+                height: '50px',
+                fontSize: '18px',
+                fontWeight: '600'
+              }}
             >
               Đăng nhập
             </Button>
           </Form.Item>
         </Form>
 
-        <div style={{ textAlign: 'center', marginTop: 8 }}>
-          <Button type="link" onClick={() => navigate('/register')}>
+        <div style={{ textAlign: 'center', marginTop: 16 }}>
+          <Button
+            type="link"
+            onClick={() => navigate('/register')}
+            style={{ fontSize: '18px' }}
+          >
             Chưa có tài khoản? Đăng ký
           </Button>
         </div>

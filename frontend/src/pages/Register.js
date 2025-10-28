@@ -102,133 +102,232 @@ const Register = () => {
       minHeight: '100vh',
       display: 'flex',
       alignItems: 'center',
-      justifyContent: 'center',
+      justifyContent: 'space-between',
+      padding: '20px 60px',
       position: 'relative',
       overflow: 'hidden',
-      background: 'linear-gradient(-45deg, #667eea, #764ba2, #f093fb, #4facfe)',
-      backgroundSize: '400% 400%',
-      animation: 'gradientShift 15s ease infinite'
+      backgroundColor: '#000000'
     }}>
-      <style>
-        {`
-          @keyframes gradientShift {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-          }
-          @keyframes float {
-            0%, 100% { transform: translateY(0) rotate(0deg); opacity: 0.7; }
-            50% { transform: translateY(-20px) rotate(180deg); opacity: 1; }
-          }
-          @keyframes float2 {
-            0%, 100% { transform: translateY(0) translateX(0) rotate(0deg); opacity: 0.5; }
-            33% { transform: translateY(-30px) translateX(20px) rotate(120deg); opacity: 0.8; }
-            66% { transform: translateY(-10px) translateX(-20px) rotate(240deg); opacity: 0.6; }
-          }
-          .bubble {
-            position: absolute;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            pointer-events: none;
-          }
-          .bubble1 {
-            width: 80px;
-            height: 80px;
-            top: 10%;
-            left: 10%;
-            animation: float 6s ease-in-out infinite;
-          }
-          .bubble2 {
-            width: 120px;
-            height: 120px;
-            top: 60%;
-            left: 80%;
-            animation: float2 8s ease-in-out infinite;
-          }
-          .bubble3 {
-            width: 60px;
-            height: 60px;
-            top: 80%;
-            left: 20%;
-            animation: float 7s ease-in-out infinite 1s;
-          }
-          .bubble4 {
-            width: 100px;
-            height: 100px;
-            top: 20%;
-            left: 75%;
-            animation: float2 9s ease-in-out infinite 2s;
-          }
-          .bubble5 {
-            width: 70px;
-            height: 70px;
-            top: 50%;
-            left: 5%;
-            animation: float 5s ease-in-out infinite 1.5s;
-          }
-        `}
-      </style>
-      <div className="bubble bubble1"></div>
-      <div className="bubble bubble2"></div>
-      <div className="bubble bubble3"></div>
-      <div className="bubble bubble4"></div>
-      <div className="bubble bubble5"></div>
-      <Card style={{ width: 480, boxShadow: '0 4px 12px rgba(0,0,0,0.15)', position: 'relative', zIndex: 1 }}>
-        <div style={{ textAlign: 'center', marginBottom: 24 }}>
-          <Title level={2} style={{ color: '#1890ff' }}>
+      {/* 3D Background using iframe to isolate errors */}
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100vw',
+        height: '100vh',
+        zIndex: 0,
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+      }}>
+        <iframe
+          src="https://my.spline.design/r4xbot-OaKDFcUbSxFFfqVeaB8uvzNg/"
+          frameBorder="0"
+          width="100%"
+          height="100%"
+          style={{
+            border: 'none',
+            position: 'absolute',
+            top: 0,
+            left: 0
+          }}
+          title="3D Background"
+        />
+      </div>
+
+      {/* Welcome Text - Left Side */}
+      <div style={{
+        width: '420px',
+        zIndex: 1,
+        color: 'white',
+        textShadow: '2px 2px 12px rgba(0,0,0,0.7)',
+        padding: '40px',
+        backgroundColor: 'rgba(24, 144, 255, 0.55)',
+        borderRadius: '24px',
+        backdropFilter: 'blur(20px)',
+        border: '1px solid rgba(255, 255, 255, 0.4)',
+        boxShadow: '0 12px 48px rgba(24, 144, 255, 0.2)'
+      }}>
+        <h1 style={{
+          fontSize: '42px',
+          fontWeight: '700',
+          marginBottom: '24px',
+          color: '#ffffff',
+          lineHeight: '1.2',
+          letterSpacing: '-1px',
+          textShadow: '3px 3px 15px rgba(0,0,0,0.8)'
+        }}>
+          Tham gia cùng<br />Chúng tôi
+        </h1>
+        <p style={{
+          fontSize: '22px',
+          marginBottom: '36px',
+          color: '#ffffff',
+          lineHeight: '1.6',
+          fontWeight: '400',
+          textShadow: '2px 2px 10px rgba(0,0,0,0.7)'
+        }}>
+          Quản lý nhà trọ chuyên nghiệp và hiệu quả
+        </p>
+        <div style={{
+          fontSize: '20px',
+          color: '#ffffff',
+          lineHeight: '2'
+        }}>
+          <div style={{
+            marginBottom: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px'
+          }}>
+            <span style={{ fontSize: '24px' }}>✓</span>
+            <span>Quản lý nhà & phòng trọ</span>
+          </div>
+          <div style={{
+            marginBottom: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px'
+          }}>
+            <span style={{ fontSize: '24px' }}>✓</span>
+            <span>Hợp đồng & hóa đơn</span>
+          </div>
+          <div style={{
+            marginBottom: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px'
+          }}>
+            <span style={{ fontSize: '24px' }}>✓</span>
+            <span>Quản lý tài sản</span>
+          </div>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px'
+          }}>
+            <span style={{ fontSize: '24px' }}>✓</span>
+            <span>Báo cáo & AI hỗ trợ</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Register Card - Right Side */}
+      <Card style={{
+        width: 480,
+        boxShadow: '0 12px 48px rgba(0,0,0,0.3)',
+        zIndex: 1,
+        position: 'relative',
+        backgroundColor: 'rgba(255, 255, 255, 0.15)',
+        backdropFilter: 'blur(20px)',
+        borderRadius: '24px',
+        border: '1px solid rgba(255, 255, 255, 0.4)',
+        padding: '16px 25px'
+      }}>
+        <div style={{ textAlign: 'center', marginBottom: 12 }}>
+          <Title level={2} style={{
+            color: '#1890ff',
+            marginBottom: '4px',
+            fontSize: '30px',
+            fontWeight: '600'
+          }}>
             Đăng ký tài khoản
           </Title>
-          <p style={{ color: '#666', marginBottom: 0 }}>
+          <p style={{
+            color: '#666',
+            marginBottom: 0,
+            fontSize: '15px'
+          }}>
             Điền thông tin để tạo tài khoản chủ trọ
           </p>
         </div>
 
-        <Form layout="vertical" form={form} onFinish={onFinish} size="large">
+        <style>
+          {`
+            .ant-form-vertical .ant-form-item-label {
+              padding-bottom: 2px;
+            }
+          `}
+        </style>
+        <Form layout="vertical" form={form} onFinish={onFinish} size="large" style={{ fontSize: '16px' }}>
           <Form.Item
-            label="Họ và tên"
+            label={<span style={{ fontSize: '16px', fontWeight: '500' }}>Họ và tên</span>}
             name="fullname"
             rules={[
               { required: true, message: 'Vui lòng nhập họ và tên' },
               { min: 3, message: 'Họ tên phải có ít nhất 3 ký tự' }
             ]}
+            style={{ marginBottom: '6px' }}
           >
-            <Input prefix={<UserOutlined />} placeholder="Ví dụ: Nguyễn Văn A" />
+            <Input
+              prefix={<UserOutlined style={{ fontSize: '18px' }} />}
+              placeholder="Ví dụ: Nguyễn Văn A"
+              style={{
+                fontSize: '16px',
+                padding: '10px 14px',
+                height: '44px'
+              }}
+            />
           </Form.Item>
 
           <Form.Item
-            label="Số điện thoại"
+            label={<span style={{ fontSize: '16px', fontWeight: '500' }}>Số điện thoại</span>}
             name="phone"
             rules={[
               { required: true, message: 'Vui lòng nhập số điện thoại' },
               { pattern: /^\d{10,11}$/, message: 'Số điện thoại không hợp lệ (10-11 chữ số)' }
             ]}
+            style={{ marginBottom: '6px' }}
           >
-            <Input prefix={<PhoneOutlined />} placeholder="Ví dụ: 0912345678" />
+            <Input
+              prefix={<PhoneOutlined style={{ fontSize: '18px' }} />}
+              placeholder="Ví dụ: 0912345678"
+              style={{
+                fontSize: '16px',
+                padding: '10px 14px',
+                height: '44px'
+              }}
+            />
           </Form.Item>
 
           <Form.Item
-            label="Email"
+            label={<span style={{ fontSize: '16px', fontWeight: '500' }}>Email</span>}
             name="email"
             rules={[
               { required: true, message: 'Vui lòng nhập email' },
               { type: 'email', message: 'Email không hợp lệ' }
             ]}
+            style={{ marginBottom: '6px' }}
           >
-            <Input prefix={<MailOutlined />} placeholder="you@example.com" />
+            <Input
+              prefix={<MailOutlined style={{ fontSize: '18px' }} />}
+              placeholder="you@example.com"
+              style={{
+                fontSize: '16px',
+                padding: '10px 14px',
+                height: '44px'
+              }}
+            />
           </Form.Item>
 
           <Form.Item
-            label="Mật khẩu"
+            label={<span style={{ fontSize: '16px', fontWeight: '500' }}>Mật khẩu</span>}
             name="password"
             rules={passwordRules}
             hasFeedback
+            style={{ marginBottom: '6px' }}
           >
-            <Input.Password prefix={<LockOutlined />} placeholder="Nhập mật khẩu" />
+            <Input.Password
+              prefix={<LockOutlined style={{ fontSize: '18px' }} />}
+              placeholder="Nhập mật khẩu"
+              style={{
+                fontSize: '16px',
+                padding: '10px 14px',
+                height: '44px'
+              }}
+            />
           </Form.Item>
 
           <Form.Item
-            label="Xác nhận mật khẩu"
+            label={<span style={{ fontSize: '16px', fontWeight: '500' }}>Xác nhận mật khẩu</span>}
             name="confirmPassword"
             dependencies={['password']}
             hasFeedback
@@ -243,19 +342,42 @@ const Register = () => {
                 },
               }),
             ]}
+            style={{ marginBottom: '6px' }}
           >
-            <Input.Password prefix={<LockOutlined />} placeholder="Nhập lại mật khẩu" />
+            <Input.Password
+              prefix={<LockOutlined style={{ fontSize: '18px' }} />}
+              placeholder="Nhập lại mật khẩu"
+              style={{
+                fontSize: '16px',
+                padding: '10px 14px',
+                height: '44px'
+              }}
+            />
           </Form.Item>
 
-          <Form.Item>
-            <Button type="primary" htmlType="submit" loading={loading} style={{ width: '100%' }}>
+          <Form.Item style={{ marginTop: '16px', marginBottom: '4px' }}>
+            <Button
+              type="primary"
+              htmlType="submit"
+              loading={loading}
+              style={{
+                width: '100%',
+                height: '44px',
+                fontSize: '17px',
+                fontWeight: '600'
+              }}
+            >
               Đăng ký
             </Button>
           </Form.Item>
         </Form>
 
-        <div style={{ textAlign: 'center' }}>
-          <Button type="link" onClick={() => navigate('/login')}>
+        <div style={{ textAlign: 'center', marginTop: 4 }}>
+          <Button
+            type="link"
+            onClick={() => navigate('/login')}
+            style={{ fontSize: '15px' }}
+          >
             Đã có tài khoản? Đăng nhập
           </Button>
         </div>
