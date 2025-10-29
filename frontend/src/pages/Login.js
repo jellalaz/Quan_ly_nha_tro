@@ -62,11 +62,11 @@ const Login = () => {
 
       {/* Welcome Text - Left Side */}
       <div style={{
-        width: '420px',
+        width: '378px',
         zIndex: 1,
         color: 'white',
         textShadow: '2px 2px 12px rgba(0,0,0,0.7)',
-        padding: '40px',
+        padding: '36px',
         backgroundColor: 'rgba(24, 144, 255, 0.55)',
         borderRadius: '24px',
         backdropFilter: 'blur(20px)',
@@ -139,7 +139,7 @@ const Login = () => {
 
       {/* Login Card - Right Side */}
       <Card style={{
-        width: 500,
+        width: 450,
         boxShadow: '0 12px 48px rgba(0,0,0,0.3)',
         zIndex: 1,
         position: 'relative',
@@ -147,7 +147,7 @@ const Login = () => {
         backdropFilter: 'blur(20px)',
         borderRadius: '24px',
         border: '1px solid rgba(255, 255, 255, 0.4)',
-        padding: '40px 30px'
+        padding: '36px 27px'
       }}>
         <div style={{ textAlign: 'center', marginBottom: 40 }}>
           <Title level={2} style={{
