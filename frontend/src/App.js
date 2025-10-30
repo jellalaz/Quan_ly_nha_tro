@@ -69,8 +69,6 @@ function App() {
                             <Route path="contracts" element={<Contracts />} />
                             <Route path="invoices" element={<Invoices />} />
                             <Route path="reports" element={<Reports />} />
-
-                                {/* Profile route for both roles under protected layout */}
                             <Route path="profile" element={<Profile />} />
                         </Route>
                     </Routes>
