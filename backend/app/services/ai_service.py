@@ -140,7 +140,7 @@ class AIService:
             - Nêu tối đa 3 ý ngắn gọn, tập trung rủi ro/điểm yếu.
 
             ## KHUYẾN NGHỊ
-            - Đưa ra 3-4 gợi ý cụ thể, dễ hành động.
+            - Đưa ra 3-4 gợi ý cụ thể, dễ hành động về vấn đề đã nêu, không lan man sang các lĩnh vực khác như bán hàng .v.v.
 
             YÊU CẦU ĐỊNH DẠNG:
             - Chỉ dùng dấu '-' cho bullet (không dùng '•', '—', '–' hay ký tự khác).
