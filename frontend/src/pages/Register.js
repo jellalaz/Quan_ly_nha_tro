@@ -28,13 +28,13 @@ const Register = () => {
       const status = res?.status;
       const data = res?.data;
 
-      // 422: FastAPI validation errors
+      // 422: Lỗi xác thực dữ liệu không hợp lệ
       if (status === 422 && Array.isArray(data?.detail)) {
         const msgs = data.detail.map((e) => e.msg).filter(Boolean);
         const combined = msgs.join('\n');
         message.error(combined || 'Dữ liệu không hợp lệ. Vui lòng kiểm tra lại.');
       } else if (status === 400) {
-        // 400: Often duplicate or bad request; surface detail if possible
+        // 400: Lỗi bad request, thường là trùng lặp dữ liệu (email/phone)
         let detailText = '';
         if (typeof data?.detail === 'string') detailText = data.detail;
         else if (Array.isArray(data?.detail)) detailText = data.detail.map((e) => e.msg).join('\n');

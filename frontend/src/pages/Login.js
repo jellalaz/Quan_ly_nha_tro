@@ -82,10 +82,10 @@ const Login = () => {
           letterSpacing: '-1px',
           textShadow: '3px 3px 15px rgba(0,0,0,0.8)'
         }}>
-          Quản lý<br />Nhà trọ Thông minh
+          Quản lý<br />Nhà trọ thông minh
         </h1>
         <p style={{
-          fontSize: '22px',
+          fontSize: '18px',
           marginBottom: '36px',
           color: '#ffffff',
           lineHeight: '1.6',

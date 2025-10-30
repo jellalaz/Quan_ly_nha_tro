@@ -31,17 +31,6 @@ const PublicRoute = ({ children }) => {
     return children;
 };
 
-// Owner Route Component
-const OwnerRoute = ({ children }) => {
-    if (!authService.isAuthenticated()) {
-        return <Navigate to="/login" replace />;
-    }
-    if (!authService.isOwner()) {
-        return <Navigate to="/dashboard" replace />;
-    }
-    return children;
-};
-
 function App() {
     return (
         <ConfigProvider locale={viVN}>
@@ -75,50 +64,13 @@ function App() {
                             <Route index element={<Navigate to="/dashboard" replace />} />
                             <Route path="dashboard" element={<Dashboard />} />
 
+                            <Route path="houses" element={<Houses />} />
+                            <Route path="rooms" element={<Rooms />} />
+                            <Route path="contracts" element={<Contracts />} />
+                            <Route path="invoices" element={<Invoices />} />
+                            <Route path="reports" element={<Reports />} />
 
-                            {/* Owner routes */}
-                            <Route
-                                path="houses"
-                                element={
-                                    <OwnerRoute>
-                                        <Houses />
-                                    </OwnerRoute>
-                                }
-                            />
-                            <Route
-                                path="rooms"
-                                element={
-                                    <OwnerRoute>
-                                        <Rooms />
-                                    </OwnerRoute>
-                                }
-                            />
-                            <Route
-                                path="contracts"
-                                element={
-                                    <OwnerRoute>
-                                        <Contracts />
-                                    </OwnerRoute>
-                                }
-                            />
-                            <Route
-                                path="invoices"
-                                element={
-                                    <OwnerRoute>
-                                        <Invoices />
-                                    </OwnerRoute>
-                                }
-                            />
-                            <Route
-                                path="reports"
-                                element={
-                                    <OwnerRoute>
-                                        <Reports />
-                                    </OwnerRoute>
-                                }
-                            />
-
-                            {/* Profile route for both roles under protected layout */}
+                                {/* Profile route for both roles under protected layout */}
                             <Route path="profile" element={<Profile />} />
                         </Route>
                     </Routes>
